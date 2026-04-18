@@ -19,7 +19,8 @@
     "build": "bun run build:linux",
     "build:linux": "bun build --compile --target=bun-linux-x64 --outfile=dist/hewg src/cli.ts",
     "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 --outfile=dist/hewg-darwin-x64 src/cli.ts",
-    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 --outfile=dist/hewg-darwin-arm64 src/cli.ts"
+    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 --outfile=dist/hewg-darwin-arm64 src/cli.ts",
+    "gen:docs": "bun run scripts/gen-diagnostics-doc.ts"
   },
   "dependencies": {
     "cac": "^6.7.14",
@@ -27,6 +28,9 @@
   },
   "devDependencies": {
     "@types/bun": "^1.1.10",
+    "ajv": "^8.18.0",
+    "ajv-draft-04": "^1.0.0",
+    "ajv-formats": "^3.0.1",
     "typescript": "^5.6.3"
   },
   "engines": {
