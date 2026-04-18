@@ -31,6 +31,7 @@
     "ajv": "^8.18.0",
     "ajv-draft-04": "^1.0.0",
     "ajv-formats": "^3.0.1",
+    "js-tiktoken": "^1.0.21",
     "typescript": "^5.6.3"
   },
   "engines": {

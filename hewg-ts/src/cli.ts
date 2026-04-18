@@ -1,5 +1,6 @@
 import { cac } from "cac";
 import pkg from "../package.json" with { type: "json" };
+import { runContract, type ContractFormat } from "./commands/contract.ts";
 import { versionString } from "./commands/version.ts";
 
 const cli = cac("hewg");
@@ -8,6 +9,21 @@ cli
   .command("version", "Print version and platform")
   .action(() => {
     console.log(versionString());
+  });
+
+cli
+  .command("contract <symbol>", "Print the structured contract for one symbol")
+  .option("--project <path>", "Path to tsconfig.json")
+  .option("--format <fmt>", "Output format: json (default) or human")
+  .action((symbol: string, options: { project?: string; format?: string }) => {
+    const fmt = options.format === "human" ? "human" : "json"
+    const result = runContract(symbol, {
+      project: options.project,
+      format: fmt as ContractFormat,
+    });
+    if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n");
+    if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
+    process.exit(result.exitCode);
   });
 
 cli.help();

@@ -29,6 +29,66 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     docs: docs("E0002"),
   },
 
+  E0003: {
+    code: "E0003",
+    severity: "error",
+    file: "-",
+    line: 1,
+    col: 1,
+    len: 1,
+    message: "symbol `payments/refund::refnud` not found",
+    suggest: [
+      {
+        kind: "rename-arg",
+        rationale: "did you mean `refund`?",
+        at: { file: "-", line: 1, col: 1, len: 1 },
+        insert: "payments/refund::refund",
+      },
+    ],
+    docs: docs("E0003"),
+  },
+
+  E0004: {
+    code: "E0004",
+    severity: "error",
+    file: "-",
+    line: 1,
+    col: 1,
+    len: 1,
+    message: "symbol `refund` is ambiguous (2 matches)",
+    related: [
+      {
+        file: "src/payments/refund.ts",
+        line: 11,
+        col: 1,
+        len: 6,
+        message: "candidate: payments/refund::refund",
+      },
+      {
+        file: "src/audit/refund.ts",
+        line: 8,
+        col: 1,
+        len: 6,
+        message: "candidate: audit/refund::refund",
+      },
+    ],
+    docs: docs("E0004"),
+  },
+
+  I0001: {
+    code: "I0001",
+    severity: "info",
+    file: "src/payments/refund.ts",
+    line: 11,
+    col: 1,
+    len: 6,
+    message: "symbol `payments/refund::refund` has no Hewg annotations; returning signature only",
+    notes: [
+      { message: "contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null" },
+    ],
+    docs: docs("I0001"),
+  },
+
   E0201: {
     code: "E0201",
     severity: "error",
