@@ -20,6 +20,8 @@ range may still carry `warning` severity.
 |---|---|---|---|
 | [`E0001`](#e0001) | error | ingest | tsconfig not found |
 | [`E0002`](#e0002) | error | ingest | file read error |
+| [`E0003`](#e0003) | error | lookup | symbol not found |
+| [`E0004`](#e0004) | error | lookup | ambiguous symbol reference |
 | [`E0201`](#e0201) | error | annotation-syntax | malformed annotation tag |
 | [`E0202`](#e0202) | error | annotation-syntax | @cap references non-existent parameter |
 | [`E0301`](#e0301) | error | effect | effect not declared in @effects |
@@ -29,6 +31,7 @@ range may still carry `warning` severity.
 | [`E0402`](#e0402) | error | capability | missing capability at call site |
 | [`E0403`](#e0403) | error | capability | capability passed as wrong parameter name |
 | [`E0501`](#e0501) | error | contract | malformed @pre/@post/@cost expression |
+| [`I0001`](#i0001) | info | contract | symbol has no Hewg annotations |
 | [`W0001`](#w0001) | warning | warning | unknown @cost field |
 | [`W0002`](#w0002) | warning | warning | unknown @hewg-* tag |
 
@@ -125,6 +128,172 @@ error[E0002]: could not read file: EACCES
           "endLine": 1,
           "endColumn": 2
         }
+      }
+    }
+  ]
+}
+```
+
+## E0003 — symbol not found
+
+- Severity: `error`
+- Category: `lookup`
+- Docs: https://hewg.dev/e/E0003
+
+### Human
+
+```
+error[E0003]: symbol `payments/refund::refnud` not found
+  --> -:1:1
+help: did you mean `refund`?
+  | + payments/refund::refund
+  = help: https://hewg.dev/e/E0003
+```
+
+### JSON
+
+```json
+{"code":"E0003","severity":"error","file":"-","line":1,"col":1,"len":1,"message":"symbol `payments/refund::refnud` not found","suggest":[{"kind":"rename-arg","rationale":"did you mean `refund`?","at":{"file":"-","line":1,"col":1,"len":1},"insert":"payments/refund::refund"}],"docs":"https://hewg.dev/e/E0003"}
+```
+
+### SARIF (excerpt)
+
+```json
+{
+  "ruleId": "E0003",
+  "level": "error",
+  "message": {
+    "text": "symbol `payments/refund::refnud` not found"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "-"
+        },
+        "region": {
+          "startLine": 1,
+          "startColumn": 1,
+          "endLine": 1,
+          "endColumn": 2
+        }
+      }
+    }
+  ],
+  "fixes": [
+    {
+      "description": {
+        "text": "did you mean `refund`?"
+      },
+      "artifactChanges": [
+        {
+          "artifactLocation": {
+            "uri": "-"
+          },
+          "replacements": [
+            {
+              "deletedRegion": {
+                "startLine": 1,
+                "startColumn": 1,
+                "endLine": 1,
+                "endColumn": 2
+              },
+              "insertedContent": {
+                "text": "payments/refund::refund"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## E0004 — ambiguous symbol reference
+
+- Severity: `error`
+- Category: `lookup`
+- Docs: https://hewg.dev/e/E0004
+
+### Human
+
+```
+error[E0004]: symbol `refund` is ambiguous (2 matches)
+  --> -:1:1
+note: candidate: payments/refund::refund
+  --> src/payments/refund.ts:11:1
+   |
+11 | export async function refund(http: HttpClient, amountCents: number) {
+   | ^^^^^^
+note: candidate: audit/refund::refund
+  --> src/audit/refund.ts:8:1
+  = help: https://hewg.dev/e/E0004
+```
+
+### JSON
+
+```json
+{"code":"E0004","severity":"error","file":"-","line":1,"col":1,"len":1,"message":"symbol `refund` is ambiguous (2 matches)","related":[{"file":"src/payments/refund.ts","line":11,"col":1,"len":6,"message":"candidate: payments/refund::refund"},{"file":"src/audit/refund.ts","line":8,"col":1,"len":6,"message":"candidate: audit/refund::refund"}],"docs":"https://hewg.dev/e/E0004"}
+```
+
+### SARIF (excerpt)
+
+```json
+{
+  "ruleId": "E0004",
+  "level": "error",
+  "message": {
+    "text": "symbol `refund` is ambiguous (2 matches)"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "-"
+        },
+        "region": {
+          "startLine": 1,
+          "startColumn": 1,
+          "endLine": 1,
+          "endColumn": 2
+        }
+      }
+    }
+  ],
+  "relatedLocations": [
+    {
+      "id": 0,
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "src/payments/refund.ts"
+        },
+        "region": {
+          "startLine": 11,
+          "startColumn": 1,
+          "endLine": 11,
+          "endColumn": 7
+        }
+      },
+      "message": {
+        "text": "candidate: payments/refund::refund"
+      }
+    },
+    {
+      "id": 1,
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "src/audit/refund.ts"
+        },
+        "region": {
+          "startLine": 8,
+          "startColumn": 1,
+          "endLine": 8,
+          "endColumn": 7
+        }
+      },
+      "message": {
+        "text": "candidate: audit/refund::refund"
       }
     }
   ]
@@ -989,6 +1158,58 @@ help: use `>=` for greater-or-equal
           ]
         }
       ]
+    }
+  ]
+}
+```
+
+## I0001 — symbol has no Hewg annotations
+
+- Severity: `info`
+- Category: `contract`
+- Docs: https://hewg.dev/e/I0001
+
+### Human
+
+```
+info[I0001]: symbol `payments/refund::refund` has no Hewg annotations; returning signature only
+  --> src/payments/refund.ts:11:1
+   |
+11 | export async function refund(http: HttpClient, amountCents: number) {
+   | ^^^^^^
+   |
+  = note: contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null
+  = help: https://hewg.dev/e/I0001
+```
+
+### JSON
+
+```json
+{"code":"I0001","severity":"info","file":"src/payments/refund.ts","line":11,"col":1,"len":6,"message":"symbol `payments/refund::refund` has no Hewg annotations; returning signature only","notes":[{"message":"contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null"}],"docs":"https://hewg.dev/e/I0001"}
+```
+
+### SARIF (excerpt)
+
+```json
+{
+  "ruleId": "I0001",
+  "level": "note",
+  "message": {
+    "text": "symbol `payments/refund::refund` has no Hewg annotations; returning signature only"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "src/payments/refund.ts"
+        },
+        "region": {
+          "startLine": 11,
+          "startColumn": 1,
+          "endLine": 11,
+          "endColumn": 7
+        }
+      }
     }
   ]
 }

@@ -4,6 +4,7 @@ export const DOCS_BASE = "https://hewg.dev/e/";
 
 export type DiagnosticCategory =
   | "ingest"
+  | "lookup"
   | "annotation-syntax"
   | "effect"
   | "capability"
@@ -36,6 +37,27 @@ export const DIAGNOSTIC_REGISTRY = {
     category: "ingest",
     summary: "file read error",
     docsUrl: docs("E0002"),
+  },
+  E0003: {
+    code: "E0003",
+    severity: "error",
+    category: "lookup",
+    summary: "symbol not found",
+    docsUrl: docs("E0003"),
+  },
+  E0004: {
+    code: "E0004",
+    severity: "error",
+    category: "lookup",
+    summary: "ambiguous symbol reference",
+    docsUrl: docs("E0004"),
+  },
+  I0001: {
+    code: "I0001",
+    severity: "info",
+    category: "contract",
+    summary: "symbol has no Hewg annotations",
+    docsUrl: docs("I0001"),
   },
   E0201: {
     code: "E0201",
