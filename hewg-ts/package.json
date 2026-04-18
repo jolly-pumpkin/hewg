@@ -1,0 +1,35 @@
+{
+  "name": "hewg",
+  "version": "0.0.1",
+  "description": "Annotation-based analyzer for agent-friendly TypeScript.",
+  "type": "module",
+  "bin": {
+    "hewg": "bin/hewg.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src",
+    "stdlib",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run build:linux",
+    "build:linux": "bun build --compile --target=bun-linux-x64 --outfile=dist/hewg src/cli.ts",
+    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 --outfile=dist/hewg-darwin-x64 src/cli.ts",
+    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 --outfile=dist/hewg-darwin-arm64 src/cli.ts"
+  },
+  "dependencies": {
+    "cac": "^6.7.14",
+    "ts-morph": "^24.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.10",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
