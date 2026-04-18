@@ -2,6 +2,8 @@ import { cac } from "cac";
 import pkg from "../package.json" with { type: "json" };
 import { runCheck, type CheckFormat } from "./commands/check.ts";
 import { runContract, type ContractFormat } from "./commands/contract.ts";
+import { runInit } from "./commands/init.ts";
+import { runSummary } from "./commands/summary.ts";
 import { versionString } from "./commands/version.ts";
 
 const cli = cac("hewg");
@@ -42,6 +44,25 @@ cli
     if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n")
     if (result.stderr.length > 0) process.stderr.write(result.stderr)
     process.exit(result.exitCode)
+  });
+
+cli
+  .command("summary <module>", "Print a compact module summary")
+  .option("--project <path>", "Path to tsconfig.json")
+  .action((mod: string, options: { project?: string }) => {
+    const result = runSummary(mod, { project: options.project });
+    if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n");
+    if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
+    process.exit(result.exitCode);
+  });
+
+cli
+  .command("init [path]", "Scaffold hewg.config.json in a TypeScript project")
+  .action((path: string | undefined) => {
+    const result = runInit({ path });
+    if (result.stdout.length > 0) process.stdout.write(result.stdout);
+    if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
+    process.exit(result.exitCode);
   });
 
 cli.help();

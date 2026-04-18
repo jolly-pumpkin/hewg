@@ -75,6 +75,17 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     docs: docs("E0004"),
   },
 
+  E0005: {
+    code: "E0005",
+    severity: "error",
+    file: "hewg.config.json",
+    line: 1,
+    col: 1,
+    len: 1,
+    message: "hewg.config.json already exists; refusing to overwrite",
+    docs: docs("E0005"),
+  },
+
   I0001: {
     code: "I0001",
     severity: "info",

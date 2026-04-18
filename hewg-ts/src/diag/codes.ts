@@ -52,6 +52,13 @@ export const DIAGNOSTIC_REGISTRY = {
     summary: "ambiguous symbol reference",
     docsUrl: docs("E0004"),
   },
+  E0005: {
+    code: "E0005",
+    severity: "error",
+    category: "ingest",
+    summary: "hewg.config.json already exists",
+    docsUrl: docs("E0005"),
+  },
   I0001: {
     code: "I0001",
     severity: "info",

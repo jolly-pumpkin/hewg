@@ -14,7 +14,7 @@ export type HewgConfig = {
   check: CheckConfig
 }
 
-const DEFAULT_CHECK: CheckConfig = {
+export const DEFAULT_CHECK: CheckConfig = {
   depthLimit: 10,
   unknownEffectPolicy: "warn",
 }
