@@ -136,6 +136,13 @@ export const DIAGNOSTIC_REGISTRY = {
     summary: "unknown @hewg-* tag",
     docsUrl: docs("W0002"),
   },
+  W0003: {
+    code: "W0003",
+    severity: "warning",
+    category: "effect",
+    summary: "effect of callee unknown; treated as pure",
+    docsUrl: docs("W0003"),
+  },
 } as const satisfies Record<string, DiagnosticInfo>;
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_REGISTRY;

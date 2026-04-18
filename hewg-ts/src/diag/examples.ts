@@ -339,6 +339,20 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     ],
     docs: docs("W0002"),
   },
+
+  W0003: {
+    code: "W0003",
+    severity: "warning",
+    file: "src/unknown.ts",
+    line: 5,
+    col: 3,
+    len: 13,
+    message: "effect of callee `externalThing` unknown; treating as pure",
+    notes: [
+      { message: "add an effect-map entry in hewg.config.json, or annotate the callee" },
+    ],
+    docs: docs("W0003"),
+  },
 };
 
 export const SYNTHETIC_SOURCES: Map<string, string> = new Map([
@@ -372,6 +386,17 @@ export const SYNTHETIC_SOURCES: Map<string, string> = new Map([
       " */",
       "export async function refund(http: HttpClient, amountCents: number) {",
       "  return {} as unknown;",
+      "}",
+    ].join("\n"),
+  ],
+  [
+    "src/unknown.ts",
+    [
+      "/**",
+      " * @effects log",
+      " */",
+      "export function foo() {",
+      "  externalThing();",
       "}",
     ].join("\n"),
   ],
