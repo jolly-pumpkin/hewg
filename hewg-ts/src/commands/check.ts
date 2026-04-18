@@ -1,5 +1,6 @@
 import { dirname, relative } from "node:path"
 import { readFileSync } from "node:fs"
+import { runCapFlow } from "../analysis/cap-flow.ts"
 import { loadEffectMap } from "../analysis/effect-map.ts"
 import { runEffectPropagation } from "../analysis/effect-prop.ts"
 import { loadHewgConfig } from "../config.ts"
@@ -52,11 +53,13 @@ export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
 
   const effectMap = loadEffectMap(config.effectMap)
   const index = buildSymbolIndex(loaded.project)
-  const diags = runEffectPropagation(loaded.project, index, {
+  const effectDiags = runEffectPropagation(loaded.project, index, {
     effectMap,
     depthLimit: config.check.depthLimit,
     unknownEffectPolicy: config.check.unknownEffectPolicy,
   })
+  const capDiags = runCapFlow(index)
+  const diags = [...effectDiags, ...capDiags]
 
   const relative_ = (abs: string): string => {
     if (abs === "-") return abs
