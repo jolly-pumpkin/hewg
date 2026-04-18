@@ -209,7 +209,7 @@ function pushMulti<K, V>(map: Map<K, V[]>, key: K, value: V): void {
   else arr.push(value)
 }
 
-function closest(target: string, candidates: readonly string[]): string[] {
+export function closest(target: string, candidates: readonly string[]): string[] {
   const scored = candidates
     .map((c) => ({ c, d: editDistance(target, c) }))
     .sort((a, b) => a.d - b.d)
