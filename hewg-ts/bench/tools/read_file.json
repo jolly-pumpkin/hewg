@@ -1,0 +1,14 @@
+{
+  "name": "read_file",
+  "description": "Read a file from the workspace. Returns the full file contents as a string. Paths are relative to the workspace root.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to the file, relative to the workspace root."
+      }
+    },
+    "required": ["path"]
+  }
+}

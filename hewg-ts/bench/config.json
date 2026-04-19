@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "model": "claude-opus-4-6-20260401",
+  "iterationBudget": 20,
+  "tokenBudget": 200000,
+  "repetitions": 3,
+  "seeds": [1, 2, 3],
+  "temperature": 1.0,
+  "maxOutputTokens": 4096,
+  "prompts": {
+    "1": "bench/prompts/condition-1.md",
+    "2": "bench/prompts/condition-2.md",
+    "3": "bench/prompts/condition-3.md",
+    "4": "bench/prompts/condition-4.md"
+  },
+  "tools": {
+    "all": [
+      "bench/tools/read_file.json",
+      "bench/tools/edit_file.json",
+      "bench/tools/run_tests.json"
+    ],
+    "condition4": [
+      "bench/tools/hewg_check.json",
+      "bench/tools/hewg_contract.json"
+    ]
+  },
+  "retry": {
+    "attempts": 4,
+    "backoffMs": [2000, 4000, 8000, 16000]
+  }
+}

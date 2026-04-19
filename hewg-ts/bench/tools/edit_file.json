@@ -1,0 +1,22 @@
+{
+  "name": "edit_file",
+  "description": "Replace old_string with new_string in the file at path. old_string must occur exactly once in the file. To create a new file, pass an empty old_string and the full file contents as new_string.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to the file, relative to the workspace root."
+      },
+      "old_string": {
+        "type": "string",
+        "description": "The exact text to replace. Must be a unique substring of the file. Pass \"\" to create a new file."
+      },
+      "new_string": {
+        "type": "string",
+        "description": "The text to write in place of old_string."
+      }
+    },
+    "required": ["path", "old_string", "new_string"]
+  }
+}

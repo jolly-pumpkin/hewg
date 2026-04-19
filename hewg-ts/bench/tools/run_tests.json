@@ -1,0 +1,9 @@
+{
+  "name": "run_tests",
+  "description": "Run the task's ground-truth test script (test.sh) in the workspace. Returns stdout, stderr, and exit code. Exit code 0 means the task is complete.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}
