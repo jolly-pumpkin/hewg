@@ -21,7 +21,9 @@
     "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 --outfile=dist/hewg-darwin-x64 src/cli.ts",
     "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 --outfile=dist/hewg-darwin-arm64 src/cli.ts",
     "gen:docs": "bun run scripts/gen-diagnostics-doc.ts",
-    "gen:effect-map-doc": "bun run scripts/gen-effect-map-doc.ts"
+    "gen:effect-map-doc": "bun run scripts/gen-effect-map-doc.ts",
+    "bench": "bun run bench/harness.ts",
+    "bench:analyze": "bun run bench/analyze.ts"
   },
   "dependencies": {
     "cac": "^6.7.14",

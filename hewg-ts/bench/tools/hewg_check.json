@@ -1,0 +1,9 @@
+{
+  "name": "hewg_check",
+  "description": "Run `hewg check` on the workspace. Returns the list of diagnostics (effect-row and capability-flow violations) as JSON. An empty list means the code's annotations are consistent with its behavior.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}

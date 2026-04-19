@@ -1,0 +1,11 @@
+{
+  "id": "smoke",
+  "description": "Add a single-line JSDoc comment above the greet function.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

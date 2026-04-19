@@ -1,0 +1,14 @@
+{
+  "name": "hewg_contract",
+  "description": "Return the structured contract for one annotated symbol. Accepts `module/path::name`, `path/to/file.ts:name`, or a bare `name`. Returns JSON with signature, effects, caps, pre, post, cost, errors, and source location. Prefer this to read_file when you only need a function's interface.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "The symbol to look up. Forms: `module/path::name`, `path/to/file.ts:name`, or bare `name`."
+      }
+    },
+    "required": ["symbol"]
+  }
+}
