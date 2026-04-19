@@ -446,6 +446,7 @@ function makeE0401Scope(input: {
     mismatch === null
       ? `callee requires ${input.calleeCap.effect}, caller provides ${input.callerCap.effect}`
       : `callee requires ${mismatch.field}=${JSON.stringify(mismatch.calleeVal)}, caller provides ${mismatch.field}=${mismatch.callerVal === undefined ? "*" : JSON.stringify(mismatch.callerVal)}`
+  const replacement = `@cap ${input.callerCap.param} ${input.calleeCap.effect}${scopeHint(input.calleeCap.scope)}`
   return makeE0401(
     input.argId,
     input.calleeCap,
@@ -454,8 +455,8 @@ function makeE0401Scope(input: {
       {
         kind: "narrow-cap",
         rationale: "tighten the caller's capability scope to match the callee",
-        at: nodeSpan(input.argId),
-        insert: input.argId.getText(),
+        at: input.callerCap.span,
+        insert: replacement,
       },
     ],
   )

@@ -19,10 +19,10 @@ cli
   .option("--project <path>", "Path to tsconfig.json")
   .option("--format <fmt>", "Output format: json (default) or human")
   .action((symbol: string, options: { project?: string; format?: string }) => {
-    const fmt = options.format === "human" ? "human" : "json"
+    const fmt: ContractFormat = options.format === "human" ? "human" : "json"
     const result = runContract(symbol, {
       project: options.project,
-      format: fmt as ContractFormat,
+      format: fmt,
     });
     if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n");
     if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");

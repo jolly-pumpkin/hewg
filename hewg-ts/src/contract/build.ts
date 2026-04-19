@@ -114,7 +114,10 @@ function collectCost(ann: readonly ParsedAnnotation[]): ContractCostJson | null 
 }
 
 function renderCostField(f: CostField): number | string {
-  if (!f.known) return f.raw.slice(f.raw.indexOf("=") + 1)
+  if (!f.known) {
+    const idx = f.raw.search(/<=|=/)
+    return idx === -1 ? f.raw : f.raw.slice(idx)
+  }
   switch (f.key) {
     case "tokens":
       return f.value

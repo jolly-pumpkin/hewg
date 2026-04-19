@@ -127,8 +127,7 @@ function analyzeDeclaredFunction(
     }
   }
 
-  const sfText = hit.file.getFullText()
-  const effectSpans = perEffectSpans(effectsAnn, sfText)
+  const effectSpans = effectsAnn.effectSpans
 
   // E0301: each observed effect that is NOT declared → one diagnostic per call site
   for (const entry of perCall) {
@@ -228,7 +227,7 @@ function resolveIdentifier(
         isProjectDecl(decl) &&
         hasCallableBody(decl as FunctionDeclaration | MethodDeclaration)
       ) {
-        return resolveUserFn(decl as FunctionDeclaration | MethodDeclaration, call, ctx, depth)
+        return resolveUserFn(decl as FunctionDeclaration | MethodDeclaration, ctx, depth)
       }
       if (dk === SyntaxKind.VariableDeclaration) {
         const vd = decl as VariableDeclaration
@@ -237,7 +236,7 @@ function resolveIdentifier(
           if (init !== undefined) {
             const ik = init.getKind()
             if (ik === SyntaxKind.ArrowFunction || ik === SyntaxKind.FunctionExpression) {
-              return resolveUserFn(vd, call, ctx, depth)
+              return resolveUserFn(vd, ctx, depth)
             }
           }
         }
@@ -308,7 +307,6 @@ function resolveUserFn(
     | FunctionDeclaration
     | MethodDeclaration
     | VariableDeclaration,
-  _call: CallExpression,
   ctx: Ctx,
   depth: number,
 ): ResolveResult {
@@ -395,55 +393,6 @@ function calleeText(call: CallExpression): string {
 
 function nodeKey(node: Node): string {
   return node.getSourceFile().getFilePath() + "#" + node.getStart()
-}
-
-// Compute a Span for each effect name inside an @effects row, so we can
-// point E0302 at the specific effect and so E0301's related/suggest target
-// the *last* effect name (matching the registered example).
-function perEffectSpans(
-  ann: ParsedAnnotation & { kind: "effects" },
-  sfText: string,
-): Span[] {
-  // ann.span covers the full tag-line starting at `@effects`.
-  // The body is everything after `@effects ` up to end-of-line.
-  const spans: Span[] = []
-  // Locate the start of the body within the tag-line.
-  // Strategy: find the line's absolute offset, walk past `@effects` and whitespace.
-  const file = ann.span.file
-  // Recover absolute offset of line start from source text + line number.
-  // We don't have the absolute offset stored, so recompute by scanning lines.
-  const lines = sfText.split("\n")
-  const lineIdx = ann.span.line - 1
-  if (lineIdx < 0 || lineIdx >= lines.length) return spans
-  let absLineStart = 0
-  for (let i = 0; i < lineIdx; i++) absLineStart += lines[i]!.length + 1
-  const lineText = lines[lineIdx]!
-  const tagStartCol = ann.span.col - 1
-  const afterTag = tagStartCol + "@effects".length
-  // Skip whitespace after the tag name.
-  let cursor = afterTag
-  while (cursor < lineText.length && (lineText[cursor] === " " || lineText[cursor] === "\t")) {
-    cursor++
-  }
-  // Now iterate comma-separated effect names and record each span.
-  // Use a small regex tokenizer over the remainder.
-  const remainder = lineText.slice(cursor)
-  let parts = remainder.split(",")
-  let localOffset = 0
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]!
-    const leading = part.length - part.trimStart().length
-    const trimmed = part.trim()
-    const colInLine = cursor + localOffset + leading + 1 // 1-indexed
-    spans.push({
-      file,
-      line: ann.span.line,
-      col: colInLine,
-      len: Math.max(1, trimmed.length),
-    })
-    localOffset += part.length + 1 // +1 for comma
-  }
-  return spans
 }
 
 // --- Diagnostic constructors ----------------------------------------------

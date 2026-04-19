@@ -40,6 +40,12 @@ describe("hewg check — cap-flow fixture", () => {
     expect(e0401.message).toContain("host")
     expect(e0401.related).toBeDefined()
     expect(e0401.related![0]!.message).toContain("callee requires @cap")
+    expect(e0401.suggest).toBeDefined()
+    expect(e0401.suggest![0]!.kind).toBe("narrow-cap")
+    expect(e0401.suggest![0]!.at.file).toBe("src/caller-scope.ts")
+    expect(e0401.suggest![0]!.at.line).toBe(6)
+    expect(e0401.suggest![0]!.insert).toContain("host=\"api.stripe.com\"")
+    expect(e0401.suggest![0]!.insert).toContain("@cap http net.https")
   })
 
   test("caller-missing.ts produces E0402 (missing capability)", () => {

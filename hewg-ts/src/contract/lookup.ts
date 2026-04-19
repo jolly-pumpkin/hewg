@@ -73,7 +73,7 @@ export function buildSymbolIndex(project: Project): SymbolIndex {
 
 export function lookupSymbol(idx: SymbolIndex, query: string): LookupResult {
   const modMatch = query.match(/^([^:]+)::(.+)$/)
-  if (modMatch !== undefined && modMatch !== null) {
+  if (modMatch !== null) {
     const mod = modMatch[1]!
     const name = modMatch[2]!
     const inner = idx.byModuleAndName.get(mod)
@@ -94,7 +94,7 @@ export function lookupSymbol(idx: SymbolIndex, query: string): LookupResult {
   }
 
   const fileMatch = query.match(/^(.+\.ts):([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)$/)
-  if (fileMatch !== undefined && fileMatch !== null) {
+  if (fileMatch !== null) {
     const filePart = fileMatch[1]!
     const name = fileMatch[2]!
     const files = [...idx.byFile.keys()].filter((p) => p.endsWith(filePart) || p.endsWith("/" + filePart))
