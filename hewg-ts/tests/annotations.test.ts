@@ -108,6 +108,17 @@ describe("@effects", () => {
     expect(diag.suggest![0]!.kind).toBe("fix-syntax")
     expect(diag.suggest![0]!.insert).toBe("net.https, fs.write")
   })
+
+  test("bare @effects parses as pure declaration (no errors)", () => {
+    const r = parse("effects-empty.ts")
+    expect(r.errors).toEqual([])
+    const a = r.annotations[0]!
+    expect(a.kind).toBe("effects")
+    if (a.kind === "effects") {
+      expect(a.effects).toEqual([])
+      expect(a.effectSpans).toEqual([])
+    }
+  })
 })
 
 describe("@cap", () => {

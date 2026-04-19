@@ -197,6 +197,10 @@ function parseEffects(
   out: MutResult,
 ): void {
   const body = ext.body
+  // Bare `@effects` (no body) is the canonical way to declare a function pure:
+  // the author explicitly opts in to Hewg's analysis, and the empty effect row
+  // is "I perform no tracked effects", distinct from no annotation at all
+  // (which means "unknown"). See Bug #1 in BUGS_FOUND.md.
   if (body.length === 0) {
     out.annotations.push({
       kind: "effects",
