@@ -35,6 +35,10 @@ const SCOPE_KEYS_BY_KIND: Record<CapEffectKind, readonly string[]> = {
 
 type MutResult = { annotations: ParsedAnnotation[]; errors: Diagnostic[] }
 
+/**
+ * @hewg-module annotations/parser
+ * @effects
+ */
 export function parseAnnotations(
   node: JSDocableNode & Node,
   opts: ParseOptions = {},
@@ -193,10 +197,17 @@ function parseEffects(
   out: MutResult,
 ): void {
   const body = ext.body
+  // Bare `@effects` (no body) is the canonical way to declare a function pure:
+  // the author explicitly opts in to Hewg's analysis, and the empty effect row
+  // is "I perform no tracked effects", distinct from no annotation at all
+  // (which means "unknown"). See Bug #1 in BUGS_FOUND.md.
   if (body.length === 0) {
-    out.errors.push(
-      makeDiag("E0201", ext.tagSpan, "malformed @effects tag: missing effect list"),
-    )
+    out.annotations.push({
+      kind: "effects",
+      effects: [],
+      effectSpans: [],
+      span: ext.tagSpan,
+    })
     return
   }
   const parts = body.split(",")

@@ -1,5 +1,8 @@
 import type { DiagnosticCode } from "./codes.ts";
 
+/**
+ * @hewg-module diag/types
+ */
 export type Severity = "error" | "warning" | "info" | "help";
 
 export type Span = {

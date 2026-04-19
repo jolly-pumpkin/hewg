@@ -23,6 +23,9 @@ function docs(code: string): string {
   return `${DOCS_BASE}${code}`;
 }
 
+/**
+ * @hewg-module diag/codes
+ */
 export const DIAGNOSTIC_REGISTRY = {
   E0001: {
     code: "E0001",
@@ -154,6 +157,9 @@ export const DIAGNOSTIC_REGISTRY = {
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_REGISTRY;
 
+/**
+ * @effects
+ */
 export function severityFromCode(code: string): Severity {
   switch (code[0]) {
     case "E":

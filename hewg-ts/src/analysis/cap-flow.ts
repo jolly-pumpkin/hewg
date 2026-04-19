@@ -45,6 +45,10 @@ type Ctx = {
   calleeCache: Map<Node, CalleeEntry>
 }
 
+/**
+ * @hewg-module analysis/cap-flow
+ * @effects
+ */
 export function runCapFlow(index: SymbolIndex): Diagnostic[] {
   const ctx: Ctx = { diagnostics: [], calleeCache: new Map() }
 
@@ -151,6 +155,9 @@ function analyzeCall(
 // covers it. Omitted caller fields = wildcard. Does not compare effect
 // strings — that is the caller's responsibility.
 
+/**
+ * @effects
+ */
 export function scopeSatisfies(caller: CapScope, callee: CapScope): boolean {
   if (caller.kind !== callee.kind) return false
   return findScopeMismatch(caller, callee) === null
@@ -401,7 +408,7 @@ function makeE0402(input: {
     line: span.line,
     col: span.col,
     len: span.len,
-    message: `call to \`${input.calleeLabel}\` requires capability \`${input.calleeCap.param}\`, but caller does not declare one`,
+    message: `callee \`${input.calleeLabel}\` requires @cap \`${input.calleeCap.param}\`; add an @cap on this function (or its nearest ancestor that owns the capability)`,
     suggest,
     docs: info.docsUrl,
   }

@@ -17,6 +17,10 @@ export type RunInitResult = {
   stderr: string
 }
 
+/**
+ * @hewg-module commands/init
+ * @effects fs.read, fs.write
+ */
 export function runInit(opts: RunInitOptions = {}): RunInitResult {
   const cwd = opts.cwd ?? process.cwd()
   const target = opts.path === undefined

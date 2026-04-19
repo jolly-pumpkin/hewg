@@ -1,5 +1,8 @@
 import type { CapEffectKind, EffectName } from "./types.ts"
 
+/**
+ * @hewg-module annotations/effect-vocab
+ */
 export const BUILTIN_EFFECTS: readonly EffectName[] = [
   "net.http",
   "net.https",
@@ -19,6 +22,9 @@ export const BUILTIN_EFFECTS: readonly EffectName[] = [
 
 const BUILTIN_SET: ReadonlySet<string> = new Set(BUILTIN_EFFECTS)
 
+/**
+ * @effects
+ */
 export function isEffectName(
   s: string,
   extra?: ReadonlySet<string>,
@@ -28,6 +34,9 @@ export function isEffectName(
   return false
 }
 
+/**
+ * @effects
+ */
 export function effectKindOf(effect: EffectName): CapEffectKind | undefined {
   if (effect === "rand") return "rand"
   if (effect === "log") return "log"

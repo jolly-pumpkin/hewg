@@ -59,6 +59,10 @@ function buildMap(merged: Record<string, EffectMapEntry>): EffectMap {
   }
 }
 
+/**
+ * @hewg-module analysis/effect-map
+ * @effects
+ */
 export function loadBuiltinEffectMap(): EffectMap {
   const data = builtinData as EffectMapData
   if (data.version !== 1) {
@@ -70,6 +74,9 @@ export function loadBuiltinEffectMap(): EffectMap {
   return buildMap(data.entries)
 }
 
+/**
+ * @effects
+ */
 export function loadEffectMap(
   userEntries?: Record<string, EffectMapEntry>,
 ): EffectMap {

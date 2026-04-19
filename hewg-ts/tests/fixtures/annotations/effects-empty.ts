@@ -1,0 +1,4 @@
+/**
+ * @effects
+ */
+export function target() {}

@@ -74,6 +74,10 @@ const NODE_BUILTINS = new Set([
   "dns",
 ])
 
+/**
+ * @hewg-module analysis/effect-prop
+ * @effects
+ */
 export function runEffectPropagation(
   project: Project,
   index: SymbolIndex,
@@ -435,7 +439,7 @@ function makeE0301(input: {
     },
     {
       kind: "add-cap",
-      rationale: "thread a capability of the right kind from the caller",
+      rationale: "add an @cap so the caller threads this capability (preferred for library code)",
       at: {
         file: effectsAnn.span.file,
         line: effectsAnn.span.line + 1,
@@ -486,7 +490,7 @@ function makeE0302(effect: EffectName, span: Span): Diagnostic {
     line: span.line,
     col: span.col,
     len: span.len,
-    message: `declared effect \`${effect}\` is never used in the function body`,
+    message: `@effects declares \`${effect}\` but no call in the body produces it (and no @cap covers it)`,
     suggest: [
       {
         kind: "remove-effect",
@@ -510,7 +514,7 @@ function makeW0003(call: CallExpression): Diagnostic {
     line: span.line,
     col: span.col,
     len: span.len,
-    message: `effect of callee \`${label}\` unknown; treating as pure`,
+    message: `callee \`${label}\` is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json`,
     notes: [
       { message: "add an effect-map entry in hewg.config.json, or annotate the callee" },
     ],

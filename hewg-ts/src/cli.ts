@@ -6,6 +6,9 @@ import { runInit } from "./commands/init.ts";
 import { runSummary } from "./commands/summary.ts";
 import { versionString } from "./commands/version.ts";
 
+/**
+ * @hewg-module cli
+ */
 const cli = cac("hewg");
 
 cli

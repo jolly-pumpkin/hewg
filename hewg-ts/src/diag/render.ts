@@ -11,10 +11,17 @@ export type RenderSarifOptions = {
   toolVersion?: string;
 };
 
+/**
+ * @hewg-module diag/render
+ * @effects
+ */
 export function renderJson(diags: readonly Diagnostic[]): string {
   return diags.map((d) => JSON.stringify(d)).join("\n");
 }
 
+/**
+ * @effects
+ */
 export function renderHuman(
   diags: readonly Diagnostic[],
   opts: RenderHumanOptions = {},
@@ -115,6 +122,9 @@ function getLine(source: string, line: number): string | undefined {
   return lines[line - 1];
 }
 
+/**
+ * @effects
+ */
 export function renderSarif(
   diags: readonly Diagnostic[],
   opts: RenderSarifOptions = {},

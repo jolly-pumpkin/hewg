@@ -19,6 +19,10 @@ export const DEFAULT_CHECK: CheckConfig = {
   unknownEffectPolicy: "warn",
 }
 
+/**
+ * @hewg-module config
+ * @effects fs.read
+ */
 export function loadHewgConfig(tsconfigPath: string): HewgConfig {
   const cfgPath = resolve(dirname(tsconfigPath), "hewg.config.json")
   if (!existsSync(cfgPath)) {

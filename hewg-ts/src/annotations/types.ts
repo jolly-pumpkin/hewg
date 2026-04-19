@@ -1,5 +1,8 @@
 import type { Diagnostic, Span } from "../diag/types.ts"
 
+/**
+ * @hewg-module annotations/types
+ */
 export type EffectName = string
 
 export type CapEffectKind = "net" | "fs" | "proc" | "time" | "rand" | "log"

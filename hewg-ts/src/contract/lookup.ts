@@ -37,6 +37,10 @@ export type LookupResult =
   | { kind: "not-found"; query: string; nearest: string[] }
   | { kind: "ambiguous"; query: string; candidates: ExportHit[] }
 
+/**
+ * @hewg-module contract/lookup
+ * @effects
+ */
 export function buildSymbolIndex(project: Project): SymbolIndex {
   const hits: ExportHit[] = []
   const byModule = new Map<string, SourceFile>()
@@ -71,6 +75,9 @@ export function buildSymbolIndex(project: Project): SymbolIndex {
   return { hits, byModule, byModuleAndName, byFile, byName }
 }
 
+/**
+ * @effects
+ */
 export function lookupSymbol(idx: SymbolIndex, query: string): LookupResult {
   const modMatch = query.match(/^([^:]+)::(.+)$/)
   if (modMatch !== null) {
@@ -209,6 +216,9 @@ function pushMulti<K, V>(map: Map<K, V[]>, key: K, value: V): void {
   else arr.push(value)
 }
 
+/**
+ * @effects
+ */
 export function closest(target: string, candidates: readonly string[]): string[] {
   const scored = candidates
     .map((c) => ({ c, d: editDistance(target, c) }))
