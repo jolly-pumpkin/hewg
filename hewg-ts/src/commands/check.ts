@@ -24,6 +24,10 @@ export type RunCheckResult = {
   stderr: string
 }
 
+/**
+ * @hewg-module commands/check
+ * @effects fs.read
+ */
 export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
   const format = opts.format ?? "human"
   const loaded = loadProject({ cwd: opts.cwd, tsconfigPath: opts.project })

@@ -22,6 +22,7 @@ range may still carry `warning` severity.
 | [`E0002`](#e0002) | error | ingest | file read error |
 | [`E0003`](#e0003) | error | lookup | symbol not found |
 | [`E0004`](#e0004) | error | lookup | ambiguous symbol reference |
+| [`E0005`](#e0005) | error | ingest | hewg.config.json already exists |
 | [`E0201`](#e0201) | error | annotation-syntax | malformed annotation tag |
 | [`E0202`](#e0202) | error | annotation-syntax | @cap references non-existent parameter |
 | [`E0301`](#e0301) | error | effect | effect not declared in @effects |
@@ -34,6 +35,7 @@ range may still carry `warning` severity.
 | [`I0001`](#i0001) | info | contract | symbol has no Hewg annotations |
 | [`W0001`](#w0001) | warning | warning | unknown @cost field |
 | [`W0002`](#w0002) | warning | warning | unknown @hewg-* tag |
+| [`W0003`](#w0003) | warning | effect | effect of callee unknown; treated as pure |
 
 ## E0001 — tsconfig not found
 
@@ -294,6 +296,53 @@ note: candidate: audit/refund::refund
       },
       "message": {
         "text": "candidate: audit/refund::refund"
+      }
+    }
+  ]
+}
+```
+
+## E0005 — hewg.config.json already exists
+
+- Severity: `error`
+- Category: `ingest`
+- Docs: https://hewg.dev/e/E0005
+
+### Human
+
+```
+error[E0005]: hewg.config.json already exists; refusing to overwrite
+  --> hewg.config.json:1:1
+  = help: https://hewg.dev/e/E0005
+```
+
+### JSON
+
+```json
+{"code":"E0005","severity":"error","file":"hewg.config.json","line":1,"col":1,"len":1,"message":"hewg.config.json already exists; refusing to overwrite","docs":"https://hewg.dev/e/E0005"}
+```
+
+### SARIF (excerpt)
+
+```json
+{
+  "ruleId": "E0005",
+  "level": "error",
+  "message": {
+    "text": "hewg.config.json already exists; refusing to overwrite"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "hewg.config.json"
+        },
+        "region": {
+          "startLine": 1,
+          "startColumn": 1,
+          "endLine": 1,
+          "endColumn": 2
+        }
       }
     }
   ]
@@ -632,7 +681,7 @@ help: thread an Fs.Read capability from the caller
 ### Human
 
 ```
-warning[E0302]: declared effect `fs.write` is never used in the function body
+warning[E0302]: @effects declares `fs.write` but no call in the body produces it (and no @cap covers it)
   --> src/payments/refund.ts:3:26
   |
 3 |  * @effects    net.https fs.write
@@ -648,7 +697,7 @@ help: drop the unused effect
 ### JSON
 
 ```json
-{"code":"E0302","severity":"warning","file":"src/payments/refund.ts","line":3,"col":26,"len":8,"message":"declared effect `fs.write` is never used in the function body","suggest":[{"kind":"remove-effect","rationale":"drop the unused effect","at":{"file":"src/payments/refund.ts","line":3,"col":25,"len":9},"insert":""}],"docs":"https://hewg.dev/e/E0302"}
+{"code":"E0302","severity":"warning","file":"src/payments/refund.ts","line":3,"col":26,"len":8,"message":"@effects declares `fs.write` but no call in the body produces it (and no @cap covers it)","suggest":[{"kind":"remove-effect","rationale":"drop the unused effect","at":{"file":"src/payments/refund.ts","line":3,"col":25,"len":9},"insert":""}],"docs":"https://hewg.dev/e/E0302"}
 ```
 
 ### SARIF (excerpt)
@@ -658,7 +707,7 @@ help: drop the unused effect
   "ruleId": "E0302",
   "level": "warning",
   "message": {
-    "text": "declared effect `fs.write` is never used in the function body"
+    "text": "@effects declares `fs.write` but no call in the body produces it (and no @cap covers it)"
   },
   "locations": [
     {
@@ -926,7 +975,7 @@ help: tighten the caller's capability scope to match the callee
 ### Human
 
 ```
-error[E0402]: call to `refund` requires capability `http`, but caller does not declare one
+error[E0402]: callee `refund` requires @cap `http`; add an @cap on this function (or its nearest ancestor that owns the capability)
   --> src/audit.ts:9:10
   |
 9 |    await refund(client, 10);
@@ -942,7 +991,7 @@ help: add an @cap annotation for the caller
 ### JSON
 
 ```json
-{"code":"E0402","severity":"error","file":"src/audit.ts","line":9,"col":10,"len":6,"message":"call to `refund` requires capability `http`, but caller does not declare one","suggest":[{"kind":"add-cap","rationale":"add an @cap annotation for the caller","at":{"file":"src/audit.ts","line":3,"col":1,"len":0},"insert":" * @cap http net.https host=\"api.stripe.com\"\n"}],"docs":"https://hewg.dev/e/E0402"}
+{"code":"E0402","severity":"error","file":"src/audit.ts","line":9,"col":10,"len":6,"message":"callee `refund` requires @cap `http`; add an @cap on this function (or its nearest ancestor that owns the capability)","suggest":[{"kind":"add-cap","rationale":"add an @cap annotation for the caller","at":{"file":"src/audit.ts","line":3,"col":1,"len":0},"insert":" * @cap http net.https host=\"api.stripe.com\"\n"}],"docs":"https://hewg.dev/e/E0402"}
 ```
 
 ### SARIF (excerpt)
@@ -952,7 +1001,7 @@ help: add an @cap annotation for the caller
   "ruleId": "E0402",
   "level": "error",
   "message": {
-    "text": "call to `refund` requires capability `http`, but caller does not declare one"
+    "text": "callee `refund` requires @cap `http`; add an @cap on this function (or its nearest ancestor that owns the capability)"
   },
   "locations": [
     {
@@ -1178,14 +1227,14 @@ info[I0001]: symbol `payments/refund::refund` has no Hewg annotations; returning
 11 | export async function refund(http: HttpClient, amountCents: number) {
    | ^^^^^^
    |
-  = note: contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null
+  = note: run `hewg check` to see whether this function should declare @effects; null in the contract means 'unknown', not 'pure'
   = help: https://hewg.dev/e/I0001
 ```
 
 ### JSON
 
 ```json
-{"code":"I0001","severity":"info","file":"src/payments/refund.ts","line":11,"col":1,"len":6,"message":"symbol `payments/refund::refund` has no Hewg annotations; returning signature only","notes":[{"message":"contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null"}],"docs":"https://hewg.dev/e/I0001"}
+{"code":"I0001","severity":"info","file":"src/payments/refund.ts","line":11,"col":1,"len":6,"message":"symbol `payments/refund::refund` has no Hewg annotations; returning signature only","notes":[{"message":"run `hewg check` to see whether this function should declare @effects; null in the contract means 'unknown', not 'pure'"}],"docs":"https://hewg.dev/e/I0001"}
 ```
 
 ### SARIF (excerpt)
@@ -1374,6 +1423,58 @@ help: remove the unknown tag
           ]
         }
       ]
+    }
+  ]
+}
+```
+
+## W0003 — effect of callee unknown; treated as pure
+
+- Severity: `warning`
+- Category: `effect`
+- Docs: https://hewg.dev/e/W0003
+
+### Human
+
+```
+warning[W0003]: callee `externalThing` is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json
+  --> src/unknown.ts:5:3
+  |
+5 |   externalThing();
+  |   ^^^^^^^^^^^^^
+  |
+  = note: add an effect-map entry in hewg.config.json, or annotate the callee
+  = help: https://hewg.dev/e/W0003
+```
+
+### JSON
+
+```json
+{"code":"W0003","severity":"warning","file":"src/unknown.ts","line":5,"col":3,"len":13,"message":"callee `externalThing` is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json","notes":[{"message":"add an effect-map entry in hewg.config.json, or annotate the callee"}],"docs":"https://hewg.dev/e/W0003"}
+```
+
+### SARIF (excerpt)
+
+```json
+{
+  "ruleId": "W0003",
+  "level": "warning",
+  "message": {
+    "text": "callee `externalThing` is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json"
+  },
+  "locations": [
+    {
+      "physicalLocation": {
+        "artifactLocation": {
+          "uri": "src/unknown.ts"
+        },
+        "region": {
+          "startLine": 5,
+          "startColumn": 3,
+          "endLine": 5,
+          "endColumn": 16
+        }
+      }
     }
   ]
 }

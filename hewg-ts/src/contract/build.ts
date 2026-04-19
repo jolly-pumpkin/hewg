@@ -19,6 +19,10 @@ export type BuildContractOptions = {
   projectRoot: string
 }
 
+/**
+ * @hewg-module contract/build
+ * @effects
+ */
 export function buildContract(hit: ExportHit, opts: BuildContractOptions): ContractJson {
   const parsed = parseAnnotations(hit.decl)
   const annotations = parsed.annotations

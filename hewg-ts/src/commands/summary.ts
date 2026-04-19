@@ -33,6 +33,10 @@ type FnLike = FunctionDeclaration | ArrowFunction | FunctionExpression | MethodD
 
 const LABEL_WIDTH = 9
 
+/**
+ * @hewg-module commands/summary
+ * @effects fs.read
+ */
 export function runSummary(moduleName: string, opts: RunSummaryOptions = {}): RunSummaryResult {
   const loaded = loadProject({ cwd: opts.cwd, tsconfigPath: opts.project })
   if (!loaded.ok) {

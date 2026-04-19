@@ -95,7 +95,7 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     len: 6,
     message: "symbol `payments/refund::refund` has no Hewg annotations; returning signature only",
     notes: [
-      { message: "contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null" },
+      { message: "run `hewg check` to see whether this function should declare @effects; null in the contract means 'unknown', not 'pure'" },
     ],
     docs: docs("I0001"),
   },
@@ -188,7 +188,7 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     line: 3,
     col: 26,
     len: 8,
-    message: "declared effect `fs.write` is never used in the function body",
+    message: "@effects declares `fs.write` but no call in the body produces it (and no @cap covers it)",
     suggest: [
       {
         kind: "remove-effect",
@@ -263,7 +263,7 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     line: 9,
     col: 10,
     len: 6,
-    message: "call to `refund` requires capability `http`, but caller does not declare one",
+    message: "callee `refund` requires @cap `http`; add an @cap on this function (or its nearest ancestor that owns the capability)",
     suggest: [
       {
         kind: "add-cap",
@@ -358,7 +358,7 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     line: 5,
     col: 3,
     len: 13,
-    message: "effect of callee `externalThing` unknown; treating as pure",
+    message: "callee `externalThing` is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json",
     notes: [
       { message: "add an effect-map entry in hewg.config.json, or annotate the callee" },
     ],

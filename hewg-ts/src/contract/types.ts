@@ -1,3 +1,6 @@
+/**
+ * @hewg-module contract/types
+ */
 export type ContractCapJson =
   | { kind: string; host?: string; port?: number; path_prefix?: string }
   | { kind: string; prefix?: string }

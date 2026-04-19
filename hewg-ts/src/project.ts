@@ -18,6 +18,10 @@ export type LoadProjectOptions = {
   tsconfigPath?: string
 }
 
+/**
+ * @hewg-module project
+ * @effects fs.read
+ */
 export function loadProject(opts: LoadProjectOptions = {}): LoadProjectResult {
   const cwd = opts.cwd ?? process.cwd()
   const explicit = opts.tsconfigPath

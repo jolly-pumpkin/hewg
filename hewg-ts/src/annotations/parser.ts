@@ -35,6 +35,10 @@ const SCOPE_KEYS_BY_KIND: Record<CapEffectKind, readonly string[]> = {
 
 type MutResult = { annotations: ParsedAnnotation[]; errors: Diagnostic[] }
 
+/**
+ * @hewg-module annotations/parser
+ * @effects
+ */
 export function parseAnnotations(
   node: JSDocableNode & Node,
   opts: ParseOptions = {},
@@ -194,9 +198,12 @@ function parseEffects(
 ): void {
   const body = ext.body
   if (body.length === 0) {
-    out.errors.push(
-      makeDiag("E0201", ext.tagSpan, "malformed @effects tag: missing effect list"),
-    )
+    out.annotations.push({
+      kind: "effects",
+      effects: [],
+      effectSpans: [],
+      span: ext.tagSpan,
+    })
     return
   }
   const parts = body.split(",")

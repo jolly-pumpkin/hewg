@@ -1,5 +1,9 @@
 import pkg from "../../package.json" with { type: "json" };
 
+/**
+ * @hewg-module commands/version
+ * @effects proc.env
+ */
 export function versionString(): string {
   const platform = process.platform;
   const arch = process.arch;

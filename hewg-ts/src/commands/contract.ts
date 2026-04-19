@@ -21,6 +21,10 @@ export type RunContractResult = {
   stderr: string
 }
 
+/**
+ * @hewg-module commands/contract
+ * @effects fs.read
+ */
 export function runContract(symbolArg: string, opts: RunContractOptions = {}): RunContractResult {
   const loaded = loadProject({ cwd: opts.cwd, tsconfigPath: opts.project })
   if (!loaded.ok) {
@@ -137,7 +141,7 @@ function makeUnannotatedDiag(contract: ContractJson, hit: ExportHit): Diagnostic
     len: hit.displayName.length,
     message: `symbol \`${contract.symbol}\` has no Hewg annotations; returning signature only`,
     notes: [
-      { message: "contract fields `effects`, `caps`, `pre`, `post`, `cost`, `errors` are null" },
+      { message: "run `hewg check` to see whether this function should declare @effects; null in the contract means 'unknown', not 'pure'" },
     ],
     docs: info.docsUrl,
   }
