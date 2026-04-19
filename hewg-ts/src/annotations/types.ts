@@ -21,7 +21,12 @@ export type CostField =
 
 export type ParsedAnnotation =
   | { kind: "hewg-module"; path: string; span: Span }
-  | { kind: "effects"; effects: readonly EffectName[]; span: Span }
+  | {
+      kind: "effects"
+      effects: readonly EffectName[]
+      effectSpans: readonly Span[]
+      span: Span
+    }
   | {
       kind: "cap"
       param: string

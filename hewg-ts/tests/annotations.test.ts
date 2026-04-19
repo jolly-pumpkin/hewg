@@ -162,6 +162,56 @@ describe("@cap", () => {
     expect(codes(r)).toContain("E0201")
     expect(r.annotations).toEqual([])
   })
+
+  describe("quoted value escapes", () => {
+    function parseCapValue(rawValue: string): {
+      result: ParseResult
+      value: string | undefined
+    } {
+      const src = [
+        "/**",
+        ` * @cap fs fs.write prefix=${rawValue}`,
+        " */",
+        "export function target(fs: unknown) { void fs }",
+      ].join("\n")
+      const sf = PROJECT.createSourceFile("__cap_escape__.ts", src, {
+        overwrite: true,
+      })
+      const fn = sf.getFunctionOrThrow("target")
+      const result = parseAnnotations(fn, { paramNames: ["fs"] })
+      const cap = result.annotations.find((a) => a.kind === "cap")
+      let value: string | undefined
+      if (cap?.kind === "cap" && cap.scope.kind === "fs") {
+        value = cap.scope.prefix
+      }
+      return { result, value }
+    }
+
+    test("escaped backslash in the middle decodes to a single backslash", () => {
+      const { result, value } = parseCapValue('"a\\\\b"')
+      expect(result.errors).toEqual([])
+      expect(value).toBe("a\\b")
+    })
+
+    test("escaped quote decodes to a literal quote", () => {
+      const { result, value } = parseCapValue('"\\\\\\""')
+      expect(result.errors).toEqual([])
+      expect(value).toBe("\\\"")
+    })
+
+    test("double escaped backslash decodes to two backslashes", () => {
+      const { result, value } = parseCapValue('"\\\\\\\\"')
+      expect(result.errors).toEqual([])
+      expect(value).toBe("\\\\")
+    })
+
+    test("trailing escaped quote is rejected as unterminated", () => {
+      const { result, value } = parseCapValue('"abc\\"')
+      expect(codes(result)).toContain("E0201")
+      expect(result.errors.some((d) => d.message.includes("unterminated"))).toBe(true)
+      expect(value).toBeUndefined()
+    })
+  })
 })
 
 describe("@pre", () => {

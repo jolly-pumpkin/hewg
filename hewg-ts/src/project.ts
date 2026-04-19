@@ -35,7 +35,7 @@ export function loadProject(opts: LoadProjectOptions = {}): LoadProjectResult {
       len: 1,
       message: "no tsconfig.json found at or above the current directory",
       notes: [
-        { message: "run `hewg contract` from a directory containing a tsconfig.json, or pass --project <path>" },
+        { message: "run hewg from a directory containing a tsconfig.json, or pass --project <path>" },
       ],
       docs: info.docsUrl,
     }

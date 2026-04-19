@@ -84,9 +84,6 @@ export function loadEffectMap(
       merged[key] = entry
     }
   }
-  for (const [key, entry] of Object.entries(data.entries)) {
-    if (merged[key] === entry) validateEntry(key, entry)
-  }
   return buildMap(merged)
 }
 

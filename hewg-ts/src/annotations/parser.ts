@@ -1,12 +1,7 @@
 import type { JSDocTag, JSDocableNode, Node, SourceFile } from "ts-morph"
 import { ts } from "ts-morph"
 import { DIAGNOSTIC_REGISTRY, type DiagnosticCode } from "../diag/codes.ts"
-import type {
-  Diagnostic,
-  Span,
-  Suggestion,
-  SuggestionKind,
-} from "../diag/types.ts"
+import type { Diagnostic, Span, Suggestion } from "../diag/types.ts"
 import { BUILTIN_EFFECTS, effectKindOf, isEffectName } from "./effect-vocab.ts"
 import type {
   CapEffectKind,
@@ -50,9 +45,10 @@ export function parseAnnotations(
     for (const tag of jsdoc.getTags()) {
       try {
         dispatchTag(tag, sf, opts, out)
-      } catch {
+      } catch (e) {
         const span = tagFullSpan(sf, tag)
-        out.errors.push(makeDiag("E0201", span, "malformed annotation tag"))
+        const msg = e instanceof Error ? e.message : String(e)
+        out.errors.push(makeDiag("E0201", span, `malformed annotation tag: ${msg}`))
       }
     }
   }
@@ -205,6 +201,7 @@ function parseEffects(
   }
   const parts = body.split(",")
   const effects: EffectName[] = []
+  const effectSpans: Span[] = []
   let cursor = ext.bodyOffset
   let bad = false
   for (const raw of parts) {
@@ -269,11 +266,13 @@ function parseEffects(
       continue
     }
     effects.push(trimmed)
+    effectSpans.push(offsetToSpan(ext.sf, startOffset, trimmed.length))
   }
   if (!bad) {
     out.annotations.push({
       kind: "effects",
       effects,
+      effectSpans,
       span: ext.tagSpan,
     })
   }
@@ -716,7 +715,34 @@ function parseKvToken(
   const rawValue = tok.text.slice(eqIdx + 1)
   const valueOffset = tok.offset + eqIdx + 1
   if (rawValue.startsWith("\"")) {
-    if (!rawValue.endsWith("\"") || rawValue.length < 2) {
+    // Single-pass unescape: decode \\ and \" atomically while walking forward,
+    // and detect unterminated values (e.g. `"abc\"` where the final " is an
+    // escape, not the closing delimiter).
+    let i = 1
+    let decoded = ""
+    let terminated = false
+    while (i < rawValue.length) {
+      const ch = rawValue[i]!
+      if (ch === "\\") {
+        const next = rawValue[i + 1]
+        if (next === "\\" || next === "\"") {
+          decoded += next
+          i += 2
+          continue
+        }
+        decoded += ch
+        i += 1
+        continue
+      }
+      if (ch === "\"") {
+        terminated = true
+        i += 1
+        break
+      }
+      decoded += ch
+      i += 1
+    }
+    if (!terminated || i !== rawValue.length) {
       out.errors.push(
         makeDiag(
           "E0201",
@@ -726,10 +752,9 @@ function parseKvToken(
       )
       return undefined
     }
-    const inner = rawValue.slice(1, -1).replace(/\\"/g, "\"").replace(/\\\\/g, "\\")
     return {
       key,
-      value: inner,
+      value: decoded,
       keyOffset: tok.offset,
       valueOffset,
       valueLen: rawValue.length,

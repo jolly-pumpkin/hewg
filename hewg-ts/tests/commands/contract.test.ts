@@ -159,6 +159,20 @@ describe("hewg contract (ambiguous)", () => {
   })
 })
 
+describe("hewg contract unknown cost fields", () => {
+  test("preserves `<=` and `=` operators in unknown cost fields", async () => {
+    const { code, stdout } = await runCli([
+      "contract",
+      "payments/weird-cost::weirdCost",
+      "--project",
+      FIXTURE_TSCONFIG,
+    ])
+    expect(code).toBe(0)
+    const json = JSON.parse(stdout.trim())
+    expect(json.cost).toEqual({ weird: "<=7", other: "=42" })
+  })
+})
+
 describe("hewg contract token budget", () => {
   test("refund contract is under 300 cl100k_base tokens", () => {
     const result = runContract("payments/refund::refund", {
