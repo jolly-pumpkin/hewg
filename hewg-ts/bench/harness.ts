@@ -2,7 +2,10 @@ import { existsSync, readdirSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { cac } from "cac"
 import { readConfig, readTask, runTask } from "./lib/run.ts"
-import type { Condition } from "./lib/types.ts"
+import { createOllamaClient } from "./lib/ollama-client.ts"
+import { createAnthropicClient } from "./lib/anthropic-client.ts"
+import type { ModelClient } from "./lib/anthropic-client.ts"
+import type { Condition, BenchConfig } from "./lib/types.ts"
 
 /**
  * @hewg-module bench/harness
@@ -27,6 +30,10 @@ cli
   .option("--all", "Run every condition × every seed from config")
   .option("--repeat <n>", "Override repetitions (picks first N seeds)")
   .option("--force", "Re-run even if result.json already exists")
+  .option("--ollama [url]", "Use local Ollama (default http://localhost:11434)")
+  .option("--model <name>", "Override model name from config (e.g. gemma4:27b)")
+  .option("--live", "Show live log trail of agent activity (default: true if TTY)")
+  .option("--verbose", "Show full agent text in live log (default: truncated)")
   .action(async (options) => {
     const repoRoot = findRepoRoot()
     const taskId = String(options.task ?? "")
@@ -62,6 +69,13 @@ cli
       // Default to all conditions × configured repetitions. (Same as --all.)
     }
 
+    // Build model client: Ollama or Anthropic
+    const client = buildClient(options, config)
+    const modelOverride = options.model ? String(options.model) : undefined
+
+    const live = options.live !== undefined ? Boolean(options.live) : process.stderr.isTTY === true
+    const verbose = Boolean(options.verbose)
+
     const results = await runTask({
       taskDir,
       configPath,
@@ -71,12 +85,77 @@ cli
       conditions,
       seeds,
       force: Boolean(options.force),
+      client,
+      modelOverride,
+      live,
+      verbose,
     })
 
     for (const r of results) {
       const outcome = r.metrics.success ? "PASS" : "FAIL"
       console.log(
         `[${outcome}] task=${r.task} cond=${r.condition} seed=${r.seed} iters=${r.metrics.iterations} tok=${r.metrics.tokensInput + r.metrics.tokensOutput} stop=${r.metrics.stop}`,
+      )
+    }
+  })
+
+cli
+  .command("run-cc", "Run task(s) using Claude Code headless (claude -p)")
+  .option("--task <id>", "Task id (directory name under bench/tasks)")
+  .option("--tasks-root <path>", "Root of task directories", { default: DEFAULT_TASK_ROOT })
+  .option("--results-dir <path>", "Where to write results", { default: DEFAULT_RESULTS })
+  .option("--workspace <path>", "Scratch workspace base dir", { default: DEFAULT_WORKSPACE_BASE })
+  .option("--condition <n>", "Restrict to one condition (1..4)")
+  .option("--seed <n>", "Restrict to one seed", { default: "1" })
+  .option("--model <name>", "Model to use (e.g. opus, sonnet, haiku)")
+  .option("--max-budget <usd>", "Max budget per run in USD", { default: "1.0" })
+  .option("--system-prompt-file <path>", "Custom system prompt file for the condition")
+  .option("--force", "Re-run even if result.json already exists")
+  .option("--live", "Pipe Claude Code stderr to terminal for live output (default: true if TTY)")
+  .action(async (options) => {
+    const { runWithClaudeCode } = await import("./lib/claude-code-runner.ts")
+    const repoRoot = findRepoRoot()
+    const taskId = String(options.task ?? "")
+    if (taskId === "") {
+      console.error("--task is required")
+      process.exit(2)
+    }
+    const tasksRoot = resolvePath(options["tasksRoot"] ?? DEFAULT_TASK_ROOT, repoRoot)
+    const taskDir = join(tasksRoot, taskId)
+    if (!existsSync(taskDir)) {
+      console.error(`task directory not found: ${taskDir}`)
+      process.exit(2)
+    }
+    const resultsDir = resolvePath(options["resultsDir"] ?? DEFAULT_RESULTS, repoRoot)
+    const workspaceBase = resolvePath(options.workspace ?? DEFAULT_WORKSPACE_BASE, repoRoot)
+
+    const task = readTask(taskDir)
+    const conditions: Condition[] = options.condition !== undefined
+      ? [Number(options.condition) as Condition]
+      : [1, 2, 3, 4]
+    const seed = Number(options.seed ?? 1)
+
+    const live = options.live !== undefined ? Boolean(options.live) : process.stderr.isTTY === true
+
+    for (const cond of conditions) {
+      const result = await runWithClaudeCode({
+        task,
+        taskDir,
+        condition: cond,
+        seed,
+        repoRoot,
+        resultsDir,
+        workspaceBase,
+        model: options.model ? String(options.model) : undefined,
+        maxBudgetUsd: Number(options["maxBudget"] ?? 1.0),
+        systemPromptFile: options["systemPromptFile"] ? String(options["systemPromptFile"]) : undefined,
+        force: Boolean(options.force),
+        live,
+      })
+      const outcome = result.success ? "PASS" : "FAIL"
+      const cost = result.costUsd !== null ? `$${result.costUsd.toFixed(4)}` : "?"
+      console.log(
+        `[${outcome}] task=${result.task} cond=${result.condition} seed=${result.seed} turns=${result.numTurns ?? "?"} cost=${cost} time=${(result.durationMs / 1000).toFixed(1)}s`,
       )
     }
   })
@@ -139,4 +218,19 @@ function resolvePath(p: string, repoRoot: string): string {
 function listTasks(tasksRoot: string): string[] {
   if (!existsSync(tasksRoot)) return []
   return readdirSync(tasksRoot).filter((e) => existsSync(join(tasksRoot, e, "task.json")))
+}
+
+function buildClient(options: Record<string, unknown>, config: BenchConfig): ModelClient {
+  if (options.ollama !== undefined) {
+    const baseUrl = typeof options.ollama === "string" && options.ollama !== ""
+      ? options.ollama
+      : "http://localhost:11434"
+    return createOllamaClient({ baseUrl })
+  }
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (apiKey === undefined || apiKey === "") {
+    console.error("ANTHROPIC_API_KEY is not set. Use --ollama for local models.")
+    process.exit(2)
+  }
+  return createAnthropicClient(apiKey, config.retry)
 }

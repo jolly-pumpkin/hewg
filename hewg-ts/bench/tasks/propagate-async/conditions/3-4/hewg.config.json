@@ -1,0 +1,6 @@
+{
+  "check": {
+    "depthLimit": 10,
+    "unknownEffectPolicy": "warn"
+  }
+}

@@ -327,6 +327,23 @@ Users extend the map via `hewg.config.json`:
 }
 ```
 
+For packages where most methods are pure (utility libraries, ORMs with only a few effectful methods), use per-package trust instead of mapping every method:
+
+```json
+{
+  "packages": {
+    "ts-morph": { "defaultPolicy": "pure" },
+    "lodash": { "defaultPolicy": "pure" },
+    "pg": { "defaultPolicy": "warn" }
+  },
+  "check": {
+    "defaultPackagePolicy": "pure"
+  }
+}
+```
+
+The resolution priority is: explicit effect map entry → per-package policy → `defaultPackagePolicy` → global `unknownEffectPolicy`. This lets you trust the long tail of utility packages while keeping enforcement on the IO-heavy ones that matter.
+
 Maintaining the map is the ongoing-maintenance cost of Hewg. An imperfect map is better than no map in v0; the benchmark will reveal how often the imperfections matter.
 
 ---

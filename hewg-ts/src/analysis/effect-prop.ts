@@ -23,6 +23,8 @@ import type {
   Project,
   PropertyAccessExpression,
   SourceFile,
+  Symbol as TsMorphSymbol,
+  Type,
   VariableDeclaration,
 } from "ts-morph"
 import { SyntaxKind } from "ts-morph"
@@ -34,13 +36,15 @@ import type {
 import type { ExportHit, SymbolIndex } from "../contract/lookup.ts"
 import { DIAGNOSTIC_REGISTRY } from "../diag/codes.ts"
 import type { Diagnostic, RelatedInfo, Span, Suggestion } from "../diag/types.ts"
-import type { UnknownEffectPolicy } from "../config.ts"
+import type { PackageConfig, PackagePolicy, UnknownEffectPolicy } from "../config.ts"
 import type { EffectMap } from "./effect-map.ts"
 
 export type EffectPropOptions = {
   effectMap: EffectMap
   depthLimit: number
   unknownEffectPolicy: UnknownEffectPolicy
+  packages?: Record<string, PackageConfig>
+  defaultPackagePolicy?: PackagePolicy
 }
 
 type FnLike = FunctionDeclaration | ArrowFunction | FunctionExpression | MethodDeclaration
@@ -51,6 +55,8 @@ type Ctx = {
   effectMap: EffectMap
   depthLimit: number
   unknownPolicy: UnknownEffectPolicy
+  packages: Record<string, PackageConfig>
+  defaultPackagePolicy: PackagePolicy | undefined
   visited: Set<string>
   memo: Map<string, ReadonlySet<EffectName>>
   diagnostics: Diagnostic[]
@@ -89,6 +95,8 @@ export function runEffectPropagation(
     effectMap: opts.effectMap,
     depthLimit: opts.depthLimit,
     unknownPolicy: opts.unknownEffectPolicy,
+    packages: opts.packages ?? {},
+    defaultPackagePolicy: opts.defaultPackagePolicy,
     visited: new Set(),
     memo: new Map(),
     diagnostics: [],
@@ -177,6 +185,8 @@ function resolveCall(call: CallExpression, ctx: Ctx, depth: number): ResolveResu
   return emitUnknown(call, ctx)
 }
 
+const EMPTY_SET: ReadonlySet<EffectName> = new Set()
+
 function resolvePropertyAccess(
   call: CallExpression,
   pae: PropertyAccessExpression,
@@ -186,19 +196,18 @@ function resolvePropertyAccess(
   const member = pae.getName()
   const obj = pae.getExpression()
 
-  // Check whether `obj` is a namespace import (import * as fs from "node:fs")
+  // Strategy 1: namespace import (import * as fs from "node:fs")
   if (obj.getKind() === SyntaxKind.Identifier) {
     const sym = (obj as Identifier).getSymbol()
     if (sym !== undefined) {
       for (const decl of sym.getDeclarations()) {
         if (decl.getKind() === SyntaxKind.NamespaceImport) {
-          // NamespaceImport -> ImportClause -> ImportDeclaration
           const importDecl = decl.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
           if (importDecl !== undefined) {
             const spec = importDecl.getModuleSpecifierValue()
             if (spec !== undefined) {
               const key = normalizeModule(spec) + "." + member
-              return mapLookupOrUnknown(key, call, ctx)
+              return mapLookupOrUnknown(key, call, ctx, packageFromSpec(spec))
             }
           }
         }
@@ -206,10 +215,118 @@ function resolvePropertyAccess(
     }
   }
 
-  // Fallback: literal object text + "." + member. Covers `console.log`,
-  // `Math.random`, `crypto.getRandomValues`, `localStorage.setItem`.
-  const key = obj.getText() + "." + member
-  return mapLookupOrUnknown(key, call, ctx)
+  // Strategy 2: literal text key (handles console.log, Math.random, etc.)
+  const textKey = obj.getText() + "." + member
+  const textEffects = ctx.effectMap.effectsOf(textKey)
+  if (textEffects !== undefined) return new Set(textEffects)
+
+  // Strategy 3: type-based resolution
+  const typeResult = resolveViaType(obj, member, call, ctx, depth)
+  if (typeResult.effects !== undefined) return typeResult.effects
+
+  // All strategies failed
+  return emitUnknown(call, ctx, typeResult.pkg)
+}
+
+function resolveViaType(
+  obj: Node,
+  member: string,
+  call: CallExpression,
+  ctx: Ctx,
+  depth: number,
+): { effects?: ResolveResult; pkg?: string } {
+  let type: Type
+  try {
+    type = obj.getType()
+  } catch {
+    return {}
+  }
+  if (type.isAny() || type.isUnknown()) return {}
+
+  const effective = unwrapType(type)
+  if (effective === undefined) return {}
+
+  // Try getSymbol() first; fall back to getApparentType() for primitives
+  // (e.g., `string` has no symbol, but its apparent type `String` does)
+  let sym = effective.getSymbol()
+  if (sym === undefined) {
+    sym = effective.getApparentType().getSymbol() ?? undefined
+  }
+  if (sym === undefined) return {}
+
+  const name = sym.getName()
+  if (name === "__type" || name === "__object") return {}
+
+  // Check if this is a built-in JS type (from TypeScript's lib.*.d.ts)
+  if (isLibType(sym)) return { effects: EMPTY_SET }
+
+  // Check if from node_modules — construct package-qualified key
+  const pkg = getPackageName(sym)
+  if (pkg !== undefined) {
+    const key = pkg + "." + name + "." + member
+    const effects = ctx.effectMap.effectsOf(key)
+    if (effects !== undefined) return { effects: new Set(effects), pkg }
+  }
+
+  // User-code type: try to resolve the method declaration and walk its body
+  const methodResult = resolveMethodOnType(sym, member, ctx, depth)
+  if (methodResult !== undefined) return { effects: methodResult, pkg }
+
+  return { pkg }
+}
+
+function unwrapType(type: Type): Type | undefined {
+  if (type.isUnion()) {
+    const stripped = type.getNonNullableType()
+    if (stripped.isUnion()) return undefined // true union, ambiguous
+    return unwrapType(stripped)
+  }
+  return type.getTargetType() ?? type
+}
+
+function isLibType(sym: TsMorphSymbol): boolean {
+  for (const decl of sym.getDeclarations()) {
+    const path = decl.getSourceFile().getFilePath()
+    if (path.includes("/typescript/lib/lib.")) return true
+  }
+  return false
+}
+
+function getPackageName(sym: TsMorphSymbol): string | undefined {
+  for (const decl of sym.getDeclarations()) {
+    const path = decl.getSourceFile().getFilePath()
+    const nmIdx = path.lastIndexOf("/node_modules/")
+    if (nmIdx === -1) continue
+    const afterNm = path.slice(nmIdx + "/node_modules/".length)
+    let pkg: string
+    if (afterNm.startsWith("@")) {
+      const parts = afterNm.split("/")
+      pkg = parts[0] + "/" + parts[1]
+    } else {
+      pkg = afterNm.split("/")[0]
+    }
+    if (pkg.startsWith("@types/")) pkg = pkg.slice("@types/".length)
+    return pkg
+  }
+  return undefined
+}
+
+function resolveMethodOnType(
+  typeSym: TsMorphSymbol,
+  member: string,
+  ctx: Ctx,
+  depth: number,
+): ResolveResult | undefined {
+  for (const decl of typeSym.getDeclarations()) {
+    if (!isProjectDecl(decl)) continue
+    const methods = decl.getDescendantsOfKind(SyntaxKind.MethodDeclaration)
+    for (const m of methods) {
+      if (m.getName() === member && hasCallableBody(m)) {
+        return resolveUserFn(m, ctx, depth)
+      }
+    }
+  }
+  return undefined
 }
 
 function resolveIdentifier(
@@ -256,7 +373,7 @@ function resolveIdentifier(
           if (spec !== undefined && !isRelativeSpecifier(spec)) {
             const imported = decl.getFirstChildByKind(SyntaxKind.Identifier)?.getText() ?? id.getText()
             const key = normalizeModule(spec) + "." + imported
-            return mapLookupOrUnknown(key, call, ctx)
+            return mapLookupOrUnknown(key, call, ctx, packageFromSpec(spec))
           }
         }
       }
@@ -289,18 +406,38 @@ function isRelativeSpecifier(spec: string): boolean {
   return spec.startsWith("./") || spec.startsWith("../") || spec.startsWith("/")
 }
 
+function packageFromSpec(spec: string): string | undefined {
+  if (spec.startsWith("node:") || spec.startsWith("./") || spec.startsWith("../") || spec.startsWith("/")) return undefined
+  if (spec.startsWith("@")) {
+    const parts = spec.split("/")
+    return parts.length >= 2 ? parts[0] + "/" + parts[1] : undefined
+  }
+  return spec.split("/")[0]
+}
+
+function resolvePackagePolicy(pkg: string | undefined, ctx: Ctx): UnknownEffectPolicy {
+  if (pkg !== undefined) {
+    const pkgCfg = ctx.packages[pkg]
+    if (pkgCfg !== undefined) return pkgCfg.defaultPolicy
+    if (ctx.defaultPackagePolicy !== undefined) return ctx.defaultPackagePolicy
+  }
+  return ctx.unknownPolicy
+}
+
 function mapLookupOrUnknown(
   key: string,
   call: CallExpression,
   ctx: Ctx,
+  pkg?: string,
 ): ResolveResult {
   const effects = ctx.effectMap.effectsOf(key)
   if (effects !== undefined) return new Set(effects)
-  return emitUnknown(call, ctx)
+  return emitUnknown(call, ctx, pkg)
 }
 
-function emitUnknown(call: CallExpression, ctx: Ctx): ResolveResult {
-  if (ctx.unknownPolicy === "warn") {
+function emitUnknown(call: CallExpression, ctx: Ctx, pkg?: string): ResolveResult {
+  const policy = resolvePackagePolicy(pkg, ctx)
+  if (policy === "warn") {
     ctx.diagnostics.push(makeW0003(call))
   }
   return new Set<EffectName>()

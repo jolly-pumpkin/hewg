@@ -78,6 +78,8 @@ async function sendWithRetry(
   throw lastErr ?? new Error("anthropic-client: exhausted retries")
 }
 
+const ANTHROPIC_TIMEOUT_MS = 120_000 // 2 minutes
+
 async function sendOnce(apiKey: string, req: ModelRequest): Promise<ModelResponse> {
   const body = {
     model: req.model,
@@ -87,15 +89,32 @@ async function sendOnce(apiKey: string, req: ModelRequest): Promise<ModelRespons
     tools: req.tools,
     messages: req.messages,
   }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  })
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } catch (e: unknown) {
+    clearTimeout(timer)
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(
+        `anthropic: request timed out after ${ANTHROPIC_TIMEOUT_MS}ms`,
+      )
+    }
+    throw e
+  }
+  clearTimeout(timer)
   if (!res.ok) {
     const text = await res.text()
     const err: Error & { status?: number } = new Error(`anthropic: ${res.status} ${res.statusText}: ${text}`)

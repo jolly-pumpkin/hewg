@@ -105,6 +105,20 @@ describe("hewg check — §1 refund.ts is clean", () => {
   })
 })
 
+describe("hewg check — per-package trust", () => {
+  // The existing unknown.ts fixture has `externalThing()` which is a bare
+  // identifier with no package — it should still emit W0003 even with
+  // defaultPackagePolicy: "pure" because no package name can be determined.
+  test("defaultPackagePolicy does not suppress W0003 for unresolvable identifiers", () => {
+    const result = runCheck({ project: FIXTURE_TSCONFIG, format: "json" })
+    const stdout = result.stdout.trim()
+    const diags: Diagnostic[] = stdout.length === 0 ? [] : stdout.split("\n").map(l => JSON.parse(l) as Diagnostic)
+    const w0003 = diags.filter(d => d.code === "W0003")
+    expect(w0003.length).toBeGreaterThan(0)
+    expect(w0003[0]!.message).toContain("externalThing")
+  })
+})
+
 describe("hewg check — error paths", () => {
   test("missing tsconfig emits E0001 and exits 1", () => {
     const result = runCheck({

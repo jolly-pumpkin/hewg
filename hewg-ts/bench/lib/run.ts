@@ -19,6 +19,8 @@ import type {
   TurnLog,
 } from "./types.ts"
 import { diffTrees, prepareWorkspace, snapshotTree } from "./workspace.ts"
+import { createLiveLogger, createNoopLogger } from "./live-log.ts"
+import type { LiveLogger } from "./live-log.ts"
 
 /**
  * @hewg-module bench/lib/run
@@ -35,6 +37,8 @@ export type RunOneOptions = {
   workspaceBase: string
   client: ModelClient
   force?: boolean
+  modelOverride?: string
+  logger?: LiveLogger
 }
 
 /**
@@ -91,10 +95,12 @@ export async function runOne(opts: RunOneOptions): Promise<RunResult> {
         .map((l) => JSON.parse(l) as TurnLog)
     : []
 
+  opts.logger?.runStart()
+
   const startedAt = new Date().toISOString()
   const agentResult = await runAgentLoop({
     client: opts.client,
-    model: config.model,
+    model: opts.modelOverride ?? config.model,
     system,
     tools: bundle,
     task: taskText,
@@ -105,6 +111,7 @@ export async function runOne(opts: RunOneOptions): Promise<RunResult> {
     logPath,
     resumeFrom,
     rng: makeRng(seed),
+    logger: opts.logger,
   })
   const finishedAt = new Date().toISOString()
 
@@ -154,6 +161,9 @@ export type RunTaskOptions = {
   seeds?: number[]
   force?: boolean
   client?: ModelClient
+  modelOverride?: string
+  live?: boolean
+  verbose?: boolean
 }
 
 /**
@@ -167,9 +177,15 @@ export async function runTask(opts: RunTaskOptions): Promise<RunResult[]> {
   const seeds = opts.seeds ?? config.seeds.slice(0, config.repetitions)
   const client = opts.client ?? defaultClient(config)
 
+  const live = opts.live ?? false
+  const verbose = opts.verbose ?? false
+
   const out: RunResult[] = []
   for (const cond of conditions) {
     for (const seed of seeds) {
+      const logger = live
+        ? createLiveLogger(task.id, cond, seed, verbose)
+        : createNoopLogger()
       const result = await runOne({
         task,
         taskDir: opts.taskDir,
@@ -181,6 +197,8 @@ export async function runTask(opts: RunTaskOptions): Promise<RunResult[]> {
         workspaceBase: opts.workspaceBase,
         client,
         force: opts.force,
+        modelOverride: opts.modelOverride,
+        logger,
       })
       out.push(result)
     }

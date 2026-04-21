@@ -1,0 +1,11 @@
+{
+  "id": "propagate-async",
+  "description": "Convert loadConfig from sync to async and propagate async/await through all callers.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

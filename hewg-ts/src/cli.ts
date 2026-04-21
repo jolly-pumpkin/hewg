@@ -1,5 +1,6 @@
 import { cac } from "cac";
 import pkg from "../package.json" with { type: "json" };
+import { runBaseline, type BaselineSubcommand } from "./commands/baseline.ts";
 import { runCheck, type CheckFormat } from "./commands/check.ts";
 import { runContract, type ContractFormat } from "./commands/contract.ts";
 import { runInit } from "./commands/init.ts";
@@ -29,24 +30,40 @@ cli
     });
     if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n");
     if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
-    process.exit(result.exitCode);
+    process.exitCode = result.exitCode;
   });
 
 cli
   .command("check", "Check annotated functions for effect-row violations")
   .option("--project <path>", "Path to tsconfig.json")
   .option("--format <fmt>", "Output format: human (default), json, or sarif")
-  .action((options: { project?: string; format?: string }) => {
+  .option("--no-baseline", "Ignore the baseline file and report all violations")
+  .action((options: { project?: string; format?: string; baseline?: boolean }) => {
     const fmt: CheckFormat =
       options.format === "json"
         ? "json"
         : options.format === "sarif"
           ? "sarif"
           : "human"
-    const result = runCheck({ project: options.project, format: fmt })
+    const result = runCheck({ project: options.project, format: fmt, noBaseline: options.baseline === false })
     if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n")
     if (result.stderr.length > 0) process.stderr.write(result.stderr)
-    process.exit(result.exitCode)
+    process.exitCode = result.exitCode
+  });
+
+cli
+  .command("baseline <subcommand>", "Manage the violation baseline (update, status)")
+  .option("--project <path>", "Path to tsconfig.json")
+  .action((subcommand: string, options: { project?: string }) => {
+    if (subcommand !== "update" && subcommand !== "status") {
+      process.stderr.write(`unknown baseline subcommand: ${subcommand}\nusage: hewg baseline <update|status>\n`)
+      process.exitCode = 2
+      return
+    }
+    const result = runBaseline({ subcommand: subcommand as BaselineSubcommand, project: options.project })
+    if (result.stdout.length > 0) process.stdout.write(result.stdout)
+    if (result.stderr.length > 0) process.stderr.write(result.stderr)
+    process.exitCode = result.exitCode
   });
 
 cli
@@ -56,7 +73,7 @@ cli
     const result = runSummary(mod, { project: options.project });
     if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n");
     if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
-    process.exit(result.exitCode);
+    process.exitCode = result.exitCode;
   });
 
 cli
@@ -65,7 +82,7 @@ cli
     const result = runInit({ path });
     if (result.stdout.length > 0) process.stdout.write(result.stdout);
     if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
-    process.exit(result.exitCode);
+    process.exitCode = result.exitCode;
   });
 
 cli.help();

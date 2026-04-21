@@ -364,6 +364,34 @@ export const DIAGNOSTIC_EXAMPLES: Record<DiagnosticCode, Diagnostic> = {
     ],
     docs: docs("W0003"),
   },
+
+  E0601: {
+    code: "E0601",
+    severity: "error",
+    file: ".hewg-baseline.json",
+    line: 1,
+    col: 1,
+    len: 1,
+    message: "baseline file is corrupt: unexpected token at position 0",
+    notes: [
+      { message: "delete .hewg-baseline.json and run `hewg baseline update` to regenerate" },
+    ],
+    docs: docs("E0601"),
+  },
+
+  I0002: {
+    code: "I0002",
+    severity: "info",
+    file: ".hewg-baseline.json",
+    line: 1,
+    col: 1,
+    len: 1,
+    message: "baseline strict mode: new violation count (8) exceeds existing baseline (5)",
+    notes: [
+      { message: "fix violations before updating the baseline, or disable strict mode in hewg.config.json" },
+    ],
+    docs: docs("I0002"),
+  },
 };
 
 export const SYNTHETIC_SOURCES: Map<string, string> = new Map([

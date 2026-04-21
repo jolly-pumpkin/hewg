@@ -1,0 +1,11 @@
+{
+  "id": "rename-and-update-callers",
+  "description": "Rename getUser to findUserById and update all imports and call sites.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

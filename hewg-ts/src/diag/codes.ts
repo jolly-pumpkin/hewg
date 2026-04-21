@@ -9,6 +9,7 @@ export type DiagnosticCategory =
   | "effect"
   | "capability"
   | "contract"
+  | "baseline"
   | "warning";
 
 export type DiagnosticInfo = {
@@ -152,6 +153,20 @@ export const DIAGNOSTIC_REGISTRY = {
     category: "effect",
     summary: "effect of callee unknown; treated as pure",
     docsUrl: docs("W0003"),
+  },
+  E0601: {
+    code: "E0601",
+    severity: "error",
+    category: "baseline",
+    summary: "baseline file corrupt or unreadable",
+    docsUrl: docs("E0601"),
+  },
+  I0002: {
+    code: "I0002",
+    severity: "info",
+    category: "baseline",
+    summary: "baseline strict mode: new violations exceed baseline count",
+    docsUrl: docs("I0002"),
   },
 } as const satisfies Record<string, DiagnosticInfo>;
 

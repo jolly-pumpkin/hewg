@@ -1,0 +1,11 @@
+{
+  "id": "add-retry-no-new-effects",
+  "description": "Add retry logic to fetchUser without introducing new side effects.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

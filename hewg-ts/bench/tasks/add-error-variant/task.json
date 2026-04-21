@@ -1,0 +1,11 @@
+{
+  "id": "add-error-variant",
+  "description": "Add a RateLimited variant to the Result type and handle it at every call site.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

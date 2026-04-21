@@ -16,5 +16,6 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*", "tests/**/*", "bench/**/*"]
+  "include": ["src/**/*", "tests/**/*", "bench/**/*"],
+  "exclude": ["bench/tasks/*/conditions/**/*"]
 }

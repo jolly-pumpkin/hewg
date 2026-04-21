@@ -1,0 +1,11 @@
+{
+  "id": "refactor-algorithm",
+  "description": "Refactor parseCSV from ad-hoc string splitting to an explicit state machine.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

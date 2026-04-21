@@ -6,6 +6,18 @@ Hewg is a static analyzer that reads structured JSDoc annotations from TypeScrip
 
 See [`docs/hewg-design-doc.md`](../docs/hewg-design-doc.md) and [`docs/hewg-roadmap.md`](../docs/hewg-roadmap.md) for the full design and epic plan.
 
+## Commands
+
+```sh
+hewg check [--format json|sarif] [--no-baseline]   # validate annotations
+hewg baseline update                                # snapshot violations
+hewg baseline status                                # show progress
+hewg contract <symbol>                              # structured contract for one symbol
+hewg summary <module>                               # one-line summary per export
+hewg init [path]                                    # scaffold hewg.config.json
+hewg version                                        # print version
+```
+
 ## Development
 
 ```sh

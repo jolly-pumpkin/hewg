@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs"
 import { runCapFlow } from "../analysis/cap-flow.ts"
 import { loadEffectMap } from "../analysis/effect-map.ts"
 import { runEffectPropagation } from "../analysis/effect-prop.ts"
-import { loadHewgConfig } from "../config.ts"
+import { filterBaselined, loadBaseline } from "../baseline.ts"
+import { loadHewgConfig, type HewgConfig } from "../config.ts"
 import { buildSymbolIndex } from "../contract/lookup.ts"
 import { DIAGNOSTIC_REGISTRY } from "../diag/codes.ts"
 import { renderHuman, renderJson, renderSarif } from "../diag/render.ts"
@@ -16,6 +17,7 @@ export type RunCheckOptions = {
   project?: string
   format?: CheckFormat
   cwd?: string
+  noBaseline?: boolean
 }
 
 export type RunCheckResult = {
@@ -24,20 +26,28 @@ export type RunCheckResult = {
   stderr: string
 }
 
+export type CollectResult =
+  | { ok: true; diagnostics: Diagnostic[]; projectRoot: string; config: HewgConfig }
+  | { ok: false; exitCode: 1 | 2; stdout: string; stderr: string }
+
 /**
  * @hewg-module commands/check
  * @effects fs.read
  */
-export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
+export function collectDiagnostics(opts: {
+  project?: string
+  cwd?: string
+  format?: CheckFormat
+}): CollectResult {
   const format = opts.format ?? "human"
   const loaded = loadProject({ cwd: opts.cwd, tsconfigPath: opts.project })
   if (!loaded.ok) {
-    return { exitCode: 1, stdout: "", stderr: render([loaded.error], format, undefined) + "\n" }
+    return { ok: false, exitCode: 1, stdout: "", stderr: render([loaded.error], format, undefined) + "\n" }
   }
 
   const projectRoot = dirname(loaded.tsconfigPath)
 
-  let config
+  let config: HewgConfig
   try {
     config = loadHewgConfig(loaded.tsconfigPath)
   } catch (e) {
@@ -52,7 +62,7 @@ export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
       message: `could not parse hewg.config.json: ${(e as Error).message}`,
       docs: info.docsUrl,
     }
-    return { exitCode: 2, stdout: "", stderr: render([diag], format, undefined) + "\n" }
+    return { ok: false, exitCode: 2, stdout: "", stderr: render([diag], format, undefined) + "\n" }
   }
 
   const effectMap = loadEffectMap(config.effectMap)
@@ -61,6 +71,8 @@ export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
     effectMap,
     depthLimit: config.check.depthLimit,
     unknownEffectPolicy: config.check.unknownEffectPolicy,
+    packages: config.packages,
+    defaultPackagePolicy: config.check.defaultPackagePolicy,
   })
   const capDiags = runCapFlow(index)
   const diags = [...effectDiags, ...capDiags]
@@ -70,14 +82,43 @@ export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
     const r = relative(projectRoot, abs)
     return r.length === 0 ? abs : r
   }
-  // Load source snippets from absolute paths BEFORE rewriting, keyed by the
-  // relative paths the renderer will see.
-  const sources =
-    format === "human" ? loadSources(diags, relative_) : undefined
   const normalized = diags.map((d) => rewriteFile(d, relative_))
-  const out = render(normalized, format, sources)
 
-  const hasError = normalized.some((d) => d.severity === "error")
+  return { ok: true, diagnostics: normalized, projectRoot, config }
+}
+
+/**
+ * @effects fs.read
+ */
+export function runCheck(opts: RunCheckOptions = {}): RunCheckResult {
+  const format = opts.format ?? "human"
+  const collected = collectDiagnostics({ project: opts.project, cwd: opts.cwd, format })
+  if (!collected.ok) {
+    return { exitCode: collected.exitCode, stdout: collected.stdout, stderr: collected.stderr }
+  }
+
+  let { diagnostics } = collected
+  const { projectRoot } = collected
+
+  // Apply baseline filtering unless explicitly disabled
+  if (!opts.noBaseline) {
+    try {
+      const baseline = loadBaseline(projectRoot)
+      if (baseline) {
+        const { remaining } = filterBaselined(diagnostics, baseline)
+        diagnostics = remaining
+      }
+    } catch {
+      // If baseline is corrupt, proceed without filtering
+    }
+  }
+
+  // Load source snippets for human format
+  const sources =
+    format === "human" ? loadSources(diagnostics, projectRoot) : undefined
+  const out = render(diagnostics, format, sources)
+
+  const hasError = diagnostics.some((d) => d.severity === "error")
   return {
     exitCode: hasError ? 1 : 0,
     stdout: out.length > 0 ? out : "",
@@ -98,7 +139,7 @@ function rewriteFile(d: Diagnostic, rel: (p: string) => string): Diagnostic {
 
 function loadSources(
   diags: readonly Diagnostic[],
-  relativeOf: (abs: string) => string,
+  projectRoot: string,
 ): Map<string, string> {
   const map = new Map<string, string>()
   const paths = new Set<string>()
@@ -106,7 +147,8 @@ function loadSources(
   for (const p of paths) {
     if (p === "-") continue
     try {
-      map.set(relativeOf(p), readFileSync(p, "utf8"))
+      const abs = p.startsWith("/") ? p : `${projectRoot}/${p}`
+      map.set(p, readFileSync(abs, "utf8"))
     } catch {
       // ignore; renderer falls back
     }

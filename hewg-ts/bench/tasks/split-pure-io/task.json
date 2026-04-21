@@ -1,0 +1,11 @@
+{
+  "id": "split-pure-io",
+  "description": "Split deployArtifact into a pure buildManifest function and an IO deployArtifact shell.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

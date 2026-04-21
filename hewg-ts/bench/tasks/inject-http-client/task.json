@@ -1,0 +1,11 @@
+{
+  "id": "inject-http-client",
+  "description": "Make syncPrices testable by accepting an HTTP client parameter instead of hardcoding fetch.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

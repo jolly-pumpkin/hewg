@@ -1,0 +1,11 @@
+{
+  "id": "extract-pure-transform",
+  "description": "Extract the pure HTML transformation from formatReport into a separate exported function.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

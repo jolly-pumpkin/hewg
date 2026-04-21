@@ -1,0 +1,11 @@
+{
+  "id": "optimize-preserving-post",
+  "description": "Optimize sortAndDeduplicate to a single-pass approach while preserving postconditions.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

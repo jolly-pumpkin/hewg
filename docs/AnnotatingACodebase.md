@@ -25,9 +25,21 @@ Two rules of thumb that will save you rework:
 hewg init
 ```
 
-That drops a `hewg.config.json` with `{ "check": { "depthLimit": 10, "unknownEffectPolicy": "warn" } }`. Two early decisions:
+That drops a `hewg.config.json` with `{ "check": { "depthLimit": 10, "unknownEffectPolicy": "warn" } }`. Key decisions:
 
 - **`unknownEffectPolicy`** — `warn` (default) or `pure`. `warn` emits W0003 for every callee that's not in the effect map; `pure` silently treats unknowns as pure. Keep `warn` for a new codebase — the noise is informative. Switch to `pure` only on a mature tree where you've already triaged the unknown surface.
+- **`defaultPackagePolicy`** — `pure` or `warn`. Controls what happens when a third-party package method is identified by type but has no effect map entry. Set to `"pure"` to trust that most library methods are side-effect-free (recommended for most projects). If omitted, falls back to `unknownEffectPolicy`.
+- **`packages`** — Per-package overrides. Use this to explicitly trust utility packages while keeping enforcement on IO-heavy ones:
+  ```json
+  {
+    "packages": {
+      "lodash": { "defaultPolicy": "pure" },
+      "pg": { "defaultPolicy": "warn" }
+    },
+    "check": { "defaultPackagePolicy": "pure" }
+  }
+  ```
+  Resolution priority: effect map entry (always wins) → per-package policy → `defaultPackagePolicy` → `unknownEffectPolicy`.
 - **Scope.** If your `tsconfig.json` includes test fixtures or examples that aren't meant to pass `hewg check`, add a `tsconfig.hewg.json` that only covers your production `src/` and run `hewg check --project tsconfig.hewg.json`. This is what the Hewg repo does for its own self-check — see `hewg-ts/tsconfig.hewg.json`.
 
 ## 3. The annotation loop
@@ -102,7 +114,7 @@ When you genuinely find a bug — a callee you know the effect of, correctly key
 - **E0402** — `callee X requires @cap Y; add an @cap on this function`. A callee needs a capability you aren't threading. Fix: add `@cap` with the same parameter name.
 - **E0403** — capability parameter name mismatch between caller and callee.
 - **E0401** — capability scope too narrow at the callee vs. the caller's. Fix: tighten the caller, or loosen the callee's requirement.
-- **W0003** — `callee X is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json`. Informational, not an error.
+- **W0003** — `callee X is not in the effect map; if it is pure, add an entry with effects: [] in hewg.config.json`. Informational, not an error. To suppress W0003 for an entire package, add it to `packages` with `{ "defaultPolicy": "pure" }`, or set `check.defaultPackagePolicy` to `"pure"`.
 - **I0001** — `symbol has no Hewg annotations`. Appears on `hewg contract`. Your cue to annotate.
 
 ## 8. Checking your work

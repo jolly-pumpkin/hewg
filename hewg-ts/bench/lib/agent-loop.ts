@@ -2,6 +2,7 @@ import { appendFileSync } from "node:fs"
 import type { ModelClient, ModelMessage, UserContent } from "./anthropic-client.ts"
 import type { ToolBundle } from "./tools.ts"
 import type { StopReason, ToolCall, TurnLog } from "./types.ts"
+import type { LiveLogger } from "./live-log.ts"
 
 /**
  * @hewg-module bench/lib/agent-loop
@@ -20,6 +21,7 @@ export type AgentLoopOptions = {
   logPath: string
   resumeFrom?: ReadonlyArray<TurnLog>
   rng: () => number
+  logger?: LiveLogger
 }
 
 export type AgentLoopResult = {
@@ -52,19 +54,25 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<AgentLoopRes
     tokensOutput = replayed.tokensOutput
   }
 
+  const log = opts.logger
+
   let stop: StopReason = "end-turn"
   while (iterations < opts.iterationBudget) {
     if (tokensInput + tokensOutput > opts.tokenBudget) {
       stop = "token-budget"
+      const msg = `token budget exceeded: ${tokensInput + tokensOutput} > ${opts.tokenBudget}`
+      log?.system(iterations, msg)
       appendTurn(opts.logPath, {
         kind: "system",
         iteration: iterations,
-        message: `token budget exceeded: ${tokensInput + tokensOutput} > ${opts.tokenBudget}`,
+        message: msg,
       })
       break
     }
 
     iterations += 1
+    log?.iterationStart(iterations, opts.iterationBudget)
+
     let response
     try {
       response = await opts.client.send({
@@ -77,10 +85,12 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<AgentLoopRes
       })
     } catch (e) {
       stop = "model-error"
+      const msg = `model error: ${(e as Error).message}`
+      log?.system(iterations, msg)
       appendTurn(opts.logPath, {
         kind: "system",
         iteration: iterations,
-        message: `model error: ${(e as Error).message}`,
+        message: msg,
       })
       break
     }
@@ -89,6 +99,8 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<AgentLoopRes
     const toolCalls = extractToolCalls(response.content)
     tokensInput += response.usage.input
     tokensOutput += response.usage.output
+
+    log?.assistantText(iterations, text)
 
     appendTurn(opts.logPath, {
       kind: "assistant",
@@ -125,7 +137,13 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<AgentLoopRes
     // Execute tool calls and pipe results back.
     const toolOutputs: UserContent[] = []
     for (const call of toolCalls) {
+      const inputPreview = formatToolInput(call.input)
+      log?.toolCall(iterations, call.name, inputPreview)
+
       const result = opts.tools.execute(call.id, call.name, call.input)
+
+      log?.toolResult(iterations, call.name, result.isError, summarizeToolResult(result.content, result.isError))
+
       appendTurn(opts.logPath, {
         kind: "tool-result",
         iteration: iterations,
@@ -145,6 +163,8 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<AgentLoopRes
   }
 
   if (iterations >= opts.iterationBudget && stop === "end-turn") stop = "iteration-budget"
+
+  log?.stop(stop, iterations, tokensInput + tokensOutput)
 
   // Satisfy pure-ish linter: use rng for determinism side channel.
   void opts.rng
@@ -180,6 +200,29 @@ function appendTurn(path: string, turn: TurnLog): void {
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s
   return s.slice(0, max) + `\n[... truncated ${s.length - max} bytes ...]`
+}
+
+function formatToolInput(input: Record<string, unknown>): string {
+  const parts: string[] = []
+  for (const [k, v] of Object.entries(input)) {
+    if (typeof v === "string") {
+      const short = v.length > 40 ? v.slice(0, 37) + "..." : v
+      parts.push(`${k}="${short}"`)
+    } else if (typeof v === "number" || typeof v === "boolean") {
+      parts.push(`${k}=${String(v)}`)
+    }
+  }
+  return parts.join("  ")
+}
+
+function summarizeToolResult(content: string, isError: boolean): string {
+  if (isError) {
+    const firstLine = content.split("\n")[0] ?? content
+    return firstLine.slice(0, 100)
+  }
+  const bytes = content.length
+  if (bytes < 200) return content.split("\n")[0]?.slice(0, 100) ?? ""
+  return `${bytes.toLocaleString()} bytes`
 }
 
 type Replayed = {
