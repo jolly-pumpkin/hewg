@@ -8,10 +8,12 @@ import type {
   CapScope,
   CostField,
   EffectName,
+  LayerTier,
   ParseOptions,
   ParseResult,
   ParsedAnnotation,
 } from "./types.ts"
+import { LAYER_TIERS } from "./types.ts"
 
 const KNOWN_TAG_NAMES = new Set([
   "hewg-module",
@@ -20,6 +22,8 @@ const KNOWN_TAG_NAMES = new Set([
   "pre",
   "post",
   "cost",
+  "idempotent",
+  "layer",
 ])
 
 const KNOWN_COST_KEYS = ["tokens", "ops", "net", "fs", "proc", "time"] as const
@@ -89,6 +93,12 @@ function dispatchTag(
       return
     case "cost":
       parseCost(ext, out)
+      return
+    case "idempotent":
+      parseIdempotent(ext, out)
+      return
+    case "layer":
+      parseLayer(ext, out)
       return
   }
 }
@@ -643,6 +653,51 @@ function parseCost(ext: TagExtract, out: MutResult): void {
   out.annotations.push({ kind: "cost", fields, span: ext.tagSpan })
 }
 
+function parseIdempotent(ext: TagExtract, out: MutResult): void {
+  if (ext.body.length > 0) {
+    out.errors.push(
+      makeDiag("E0201", ext.tagSpan, "malformed @idempotent tag: expected no body"),
+    )
+    return
+  }
+  out.annotations.push({ kind: "idempotent", span: ext.tagSpan })
+}
+
+function parseLayer(ext: TagExtract, out: MutResult): void {
+  const body = ext.body
+  if (body.length === 0) {
+    out.errors.push(
+      makeDiag("E0201", ext.tagSpan, `malformed @layer tag: expected one of ${LAYER_TIERS.join(", ")}`),
+    )
+    return
+  }
+  const tier = body.trim()
+  if (!LAYER_TIERS.includes(tier as LayerTier)) {
+    const span = offsetToSpan(ext.sf, ext.bodyOffset, tier.length)
+    const hint = closestWord(tier, LAYER_TIERS)
+    const suggest: Suggestion[] = hint
+      ? [
+          {
+            kind: "fix-syntax",
+            rationale: `did you mean \`${hint}\`?`,
+            at: span,
+            insert: hint,
+          },
+        ]
+      : []
+    out.errors.push(
+      makeDiag(
+        "E0201",
+        span,
+        `malformed @layer tag: unknown tier \`${tier}\`; expected one of ${LAYER_TIERS.join(", ")}`,
+        suggest,
+      ),
+    )
+    return
+  }
+  out.annotations.push({ kind: "layer", tier: tier as LayerTier, span: ext.tagSpan })
+}
+
 function intOrUndef(s: string): number | undefined {
   if (!/^\d+$/.test(s)) return undefined
   const n = Number.parseInt(s, 10)
@@ -845,7 +900,9 @@ export type {
   CapScope,
   CostField,
   EffectName,
+  LayerTier,
   ParseOptions,
   ParseResult,
   ParsedAnnotation,
 } from "./types.ts"
+export { LAYER_TIERS } from "./types.ts"

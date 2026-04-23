@@ -25,7 +25,7 @@ cli
   .option("--tasks-root <path>", "Root of task directories", { default: DEFAULT_TASK_ROOT })
   .option("--results-dir <path>", "Where to write results", { default: DEFAULT_RESULTS })
   .option("--workspace <path>", "Scratch workspace base dir", { default: DEFAULT_WORKSPACE_BASE })
-  .option("--condition <n>", "Restrict to one condition (1..4)")
+  .option("--condition <n>", "Restrict to one condition (1, 2, 2.5, 3, 4)")
   .option("--seed <n>", "Restrict to one seed")
   .option("--all", "Run every condition × every seed from config")
   .option("--repeat <n>", "Override repetitions (picks first N seeds)")
@@ -53,7 +53,7 @@ cli
 
     const conditions: Condition[] = options.condition !== undefined
       ? [Number(options.condition) as Condition]
-      : [1, 2, 3, 4]
+      : [1, 2, 2.5, 3, 4]
 
     const config = readConfig(configPath)
     let seeds: number[]
@@ -105,7 +105,7 @@ cli
   .option("--tasks-root <path>", "Root of task directories", { default: DEFAULT_TASK_ROOT })
   .option("--results-dir <path>", "Where to write results", { default: DEFAULT_RESULTS })
   .option("--workspace <path>", "Scratch workspace base dir", { default: DEFAULT_WORKSPACE_BASE })
-  .option("--condition <n>", "Restrict to one condition (1..4)")
+  .option("--condition <n>", "Restrict to one condition (1, 2, 2.5, 3, 4)")
   .option("--seed <n>", "Restrict to one seed", { default: "1" })
   .option("--model <name>", "Model to use (e.g. opus, sonnet, haiku)")
   .option("--max-budget <usd>", "Max budget per run in USD", { default: "1.0" })
@@ -132,7 +132,7 @@ cli
     const task = readTask(taskDir)
     const conditions: Condition[] = options.condition !== undefined
       ? [Number(options.condition) as Condition]
-      : [1, 2, 3, 4]
+      : [1, 2, 2.5, 3, 4]
     const seed = Number(options.seed ?? 1)
 
     const live = options.live !== undefined ? Boolean(options.live) : process.stderr.isTTY === true
@@ -179,7 +179,7 @@ cli
       if (!existsSync(taskDir)) continue
       const task = readTask(taskDir)
       console.log(`task ${task.id}`)
-      for (const cond of [1, 2, 3, 4]) {
+      for (const cond of [1, 2, 2.5, 3, 4]) {
         for (const seed of config.seeds.slice(0, config.repetitions)) {
           const p = join(resultsDir, task.id, String(cond), String(seed), "result.json")
           const mark = existsSync(p) ? "✓" : "·"

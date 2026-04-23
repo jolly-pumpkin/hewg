@@ -42,6 +42,8 @@ export function buildContract(hit: ExportHit, opts: BuildContractOptions): Contr
     pre: annotated ? collectExprs(annotations, "pre") : null,
     post: annotated ? collectExprs(annotations, "post") : null,
     cost: annotated ? collectCost(annotations) : null,
+    idempotent: annotated ? collectIdempotent(annotations) : null,
+    layer: annotated ? collectLayer(annotations) : null,
     errors: null,
     source: { file: filePath, line },
   }
@@ -105,6 +107,15 @@ function collectExprs(ann: readonly ParsedAnnotation[], kind: "pre" | "post"): r
   const out: string[] = []
   for (const a of ann) if (a.kind === kind) out.push(a.expression)
   return out
+}
+
+function collectIdempotent(ann: readonly ParsedAnnotation[]): boolean {
+  return ann.some((a) => a.kind === "idempotent")
+}
+
+function collectLayer(ann: readonly ParsedAnnotation[]): string | null {
+  for (const a of ann) if (a.kind === "layer") return a.tier
+  return null
 }
 
 function collectCost(ann: readonly ParsedAnnotation[]): ContractCostJson | null {

@@ -42,6 +42,12 @@ export type ParsedAnnotation =
   | { kind: "pre"; expression: string; span: Span; exprSpan: Span }
   | { kind: "post"; expression: string; span: Span; exprSpan: Span }
   | { kind: "cost"; fields: readonly CostField[]; span: Span }
+  | { kind: "idempotent"; span: Span }
+  | { kind: "layer"; tier: LayerTier; span: Span }
+
+export type LayerTier = "api" | "service" | "command" | "output" | "lib"
+
+export const LAYER_TIERS: readonly LayerTier[] = ["api", "service", "command", "output", "lib"]
 
 export type ParseOptions = {
   extraEffects?: ReadonlySet<string>

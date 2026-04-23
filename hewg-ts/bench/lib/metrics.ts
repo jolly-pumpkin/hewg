@@ -3,7 +3,7 @@ import { join, relative, resolve } from "node:path"
 import { Project, SyntaxKind } from "ts-morph"
 import { runCheck } from "../../src/commands/check.ts"
 import type { Diagnostic } from "../../src/diag/types.ts"
-import type { Condition } from "./types.ts"
+import type { Condition, TurnLog } from "./types.ts"
 
 /**
  * @hewg-module bench/lib/metrics
@@ -153,6 +153,81 @@ function isEffectOrCapViolation(code: string): boolean {
   if (code.startsWith("E030")) return true
   if (code.startsWith("E040")) return true
   return false
+}
+
+// ── Turn-log metrics ──────────────────────────────────────────────────────
+
+export type TurnLogMetricResult = {
+  filesReadBeforeFirstCorrectEdit: number | null
+  backtrackingEvents: number | null
+}
+
+/**
+ * @hewg-module bench/lib/metrics
+ * @effects fs.read
+ */
+export function extractTurnLogMetrics(
+  logPath: string,
+  workspace: string,
+  beforeTree: Map<string, string>,
+): TurnLogMetricResult {
+  if (!existsSync(logPath)) {
+    return { filesReadBeforeFirstCorrectEdit: null, backtrackingEvents: null }
+  }
+
+  const raw = readFileSync(logPath, "utf8")
+  const lines = raw.split("\n").filter((l) => l.trim().length > 0)
+  const turns: TurnLog[] = lines.map((l) => JSON.parse(l) as TurnLog)
+
+  // Determine which files changed (are in the final diff).
+  const changed = new Set(changedTsFiles(workspace, beforeTree))
+
+  // Extract ordered tool calls from assistant turns.
+  const toolCalls: Array<{ name: string; input: Record<string, unknown> }> = []
+  for (const t of turns) {
+    if (t.kind === "assistant") {
+      for (const tc of t.toolCalls) {
+        toolCalls.push({ name: tc.name, input: tc.input })
+      }
+    }
+  }
+
+  // filesReadBeforeFirstCorrectEdit: count read_file calls before the first
+  // edit_file call targeting a file that ends up in the final diff.
+  let filesReadBeforeFirst: number | null = null
+  let readCount = 0
+  for (const tc of toolCalls) {
+    if (tc.name === "read_file") {
+      readCount++
+    } else if (tc.name === "edit_file") {
+      const path = normalizePath(String(tc.input.path ?? ""))
+      if (changed.has(path)) {
+        filesReadBeforeFirst = readCount
+        break
+      }
+    }
+  }
+
+  // backtrackingEvents: count edit_file calls to files already edited earlier.
+  const editedFiles = new Set<string>()
+  let backtracking = 0
+  for (const tc of toolCalls) {
+    if (tc.name === "edit_file") {
+      const path = normalizePath(String(tc.input.path ?? ""))
+      if (editedFiles.has(path)) backtracking++
+      else editedFiles.add(path)
+    }
+  }
+
+  return {
+    filesReadBeforeFirstCorrectEdit: filesReadBeforeFirst,
+    backtrackingEvents: backtracking,
+  }
+}
+
+function normalizePath(p: string): string {
+  // Strip leading ./ for consistent comparison with changedTsFiles output.
+  return p.startsWith("./") ? p.slice(2) : p
 }
 
 function isAmbientLike(spec: string): boolean {

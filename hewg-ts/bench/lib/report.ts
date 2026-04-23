@@ -18,6 +18,8 @@ export type Aggregate = {
   meanTokensCi: [number, number]
   meanHallucinations: number | null
   meanEffectViolations: number | null
+  meanFilesReadBeforeFirstCorrectEdit: number | null
+  meanBacktrackingEvents: number | null
 }
 
 /**
@@ -82,6 +84,12 @@ export function aggregate(results: RunResult[]): Aggregate[] {
     const effViols = runs
       .map((r) => r.metrics.effectViolations)
       .filter((v): v is number => v !== null)
+    const filesRead = runs
+      .map((r) => r.metrics.filesReadBeforeFirstCorrectEdit)
+      .filter((v): v is number => v !== null)
+    const backtrack = runs
+      .map((r) => r.metrics.backtrackingEvents)
+      .filter((v): v is number => v !== null)
 
     out.push({
       task: task!,
@@ -95,6 +103,8 @@ export function aggregate(results: RunResult[]): Aggregate[] {
       meanTokensCi: ci95(toks),
       meanHallucinations: halls.length === 0 ? null : mean(halls),
       meanEffectViolations: effViols.length === 0 ? null : mean(effViols),
+      meanFilesReadBeforeFirstCorrectEdit: filesRead.length === 0 ? null : mean(filesRead),
+      meanBacktrackingEvents: backtrack.length === 0 ? null : mean(backtrack),
     })
   }
   return out
@@ -126,11 +136,11 @@ export function renderMarkdown(rows: Aggregate[], annotationCostPath?: string): 
   for (const [task, taskRows] of [...byTask.entries()].sort()) {
     parts.push(`## Task: \`${task}\``)
     parts.push("")
-    parts.push("| Condition | N | Success | Iters | Tokens | Hallucinated | Effect-viol |")
-    parts.push("|-----------|---|---------|-------|--------|--------------|-------------|")
+    parts.push("| Condition | N | Success | Iters | Tokens | Hallucinated | Effect-viol | Reads→1st edit | Backtracks |")
+    parts.push("|-----------|---|---------|-------|--------|--------------|-------------|----------------|------------|")
     for (const r of taskRows.sort((a, b) => a.condition - b.condition)) {
       parts.push(
-        `| ${conditionLabel(r.condition)} | ${r.n} | ${pct(r.successRate)} ${rangePct(r.successRateCi)} | ${num(r.meanIterations)} ${rangeNum(r.meanIterationsCi)} | ${num(r.meanTokens)} ${rangeNum(r.meanTokensCi)} | ${nullNum(r.meanHallucinations)} | ${nullNum(r.meanEffectViolations)} |`,
+        `| ${conditionLabel(r.condition)} | ${r.n} | ${pct(r.successRate)} ${rangePct(r.successRateCi)} | ${num(r.meanIterations)} ${rangeNum(r.meanIterationsCi)} | ${num(r.meanTokens)} ${rangeNum(r.meanTokensCi)} | ${nullNum(r.meanHallucinations)} | ${nullNum(r.meanEffectViolations)} | ${nullNum(r.meanFilesReadBeforeFirstCorrectEdit)} | ${nullNum(r.meanBacktrackingEvents)} |`,
       )
     }
     parts.push("")
@@ -157,6 +167,7 @@ function conditionLabel(c: Condition): string {
   switch (c) {
     case 1: return "1 (plain TS)"
     case 2: return "2 (+JSDoc types)"
+    case 2.5: return "2.5 (+JSDoc+arch doc)"
     case 3: return "3 (+Hewg no tool)"
     case 4: return "4 (+Hewg + tools)"
   }

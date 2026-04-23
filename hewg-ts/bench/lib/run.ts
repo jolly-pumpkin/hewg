@@ -3,13 +3,14 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs"
 import { isAbsolute, join, resolve } from "node:path"
 import { runAgentLoop } from "./agent-loop.ts"
 import type { ModelClient } from "./anthropic-client.ts"
 import { createAnthropicClient } from "./anthropic-client.ts"
-import { extractMetrics } from "./metrics.ts"
+import { extractMetrics, extractTurnLogMetrics } from "./metrics.ts"
 import { buildToolBundle, loadToolSchemas } from "./tools.ts"
 import type {
   BenchConfig,
@@ -56,6 +57,13 @@ export async function runOne(opts: RunOneOptions): Promise<RunResult> {
   if (!opts.force && existsSync(resultPath)) {
     const existing = JSON.parse(readFileSync(resultPath, "utf8")) as RunResult
     return existing
+  }
+
+  // When forcing a re-run, clear prior logs so resumption doesn't replay stale turns.
+  if (opts.force) {
+    for (const f of [resultPath, logPath, patchPath]) {
+      if (existsSync(f)) unlinkSync(f)
+    }
   }
 
   const variantRel = task.conditions[String(condition)]
@@ -119,6 +127,7 @@ export async function runOne(opts: RunOneOptions): Promise<RunResult> {
   writeFileSync(patchPath, diffTrees(beforeTree, workspace))
   const success = runGroundTruth(workspace, testScript)
   const metric = extractMetrics(workspace, condition, beforeTree)
+  const turnLogMetric = extractTurnLogMetrics(logPath, workspace, beforeTree)
 
   const result: RunResult = {
     task: task.id,
@@ -134,6 +143,8 @@ export async function runOne(opts: RunOneOptions): Promise<RunResult> {
       tokensOutput: agentResult.tokensOutput,
       hallucinatedSymbols: metric.hallucinatedSymbols,
       effectViolations: metric.effectViolations,
+      filesReadBeforeFirstCorrectEdit: turnLogMetric.filesReadBeforeFirstCorrectEdit,
+      backtrackingEvents: turnLogMetric.backtrackingEvents,
       stop: agentResult.stop,
     },
     patchPath,
@@ -173,7 +184,7 @@ export type RunTaskOptions = {
 export async function runTask(opts: RunTaskOptions): Promise<RunResult[]> {
   const config = readConfig(opts.configPath)
   const task = readTask(opts.taskDir)
-  const conditions = opts.conditions ?? ([1, 2, 3, 4] as Condition[])
+  const conditions = opts.conditions ?? ([1, 2, 2.5, 3, 4] as Condition[])
   const seeds = opts.seeds ?? config.seeds.slice(0, config.repetitions)
   const client = opts.client ?? defaultClient(config)
 

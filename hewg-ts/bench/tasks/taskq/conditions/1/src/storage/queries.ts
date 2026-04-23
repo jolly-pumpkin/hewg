@@ -1,0 +1,61 @@
+
+import type { Job, JobStatus } from "../types/job";
+import { JobPriority } from "../types/job";
+import type { TenantId } from "../types/tenant";
+import type { Database } from "./connection";
+import { readDataFile } from "./connection";
+
+export function countJobsByTenant(db: Database, tenantId: TenantId): number {
+  const data = readDataFile(db);
+  return Object.values(data.jobs).filter(
+    (j) => (j as Job).tenantId === (tenantId as string),
+  ).length;
+}
+
+export function countActiveJobs(db: Database): number {
+  const data = readDataFile(db);
+  return Object.values(data.jobs).filter((j) => {
+    const status = (j as Job).status;
+    return status === "pending" || status === "running";
+  }).length;
+}
+
+export function getOldestPendingJob(
+  db: Database,
+  queueName?: string,
+): Job | null {
+  const data = readDataFile(db);
+  const pending = Object.values(data.jobs)
+    .map((j) => j as Job)
+    .filter((j) => j.status === "pending")
+    .filter((j) => (queueName ? j.queueName === queueName : true));
+
+  if (pending.length === 0) return null;
+
+  pending.sort(
+    (a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  return pending[0];
+}
+
+export function getJobsByPriorityOrder(
+  db: Database,
+  queueName: string,
+  limit: number,
+): Job[] {
+  const data = readDataFile(db);
+  const jobs = Object.values(data.jobs)
+    .map((j) => j as Job)
+    .filter((j) => j.queueName === queueName && j.status === "pending");
+
+  jobs.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return (
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  });
+
+  return jobs.slice(0, limit);
+}

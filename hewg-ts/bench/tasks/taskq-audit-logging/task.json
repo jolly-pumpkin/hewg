@@ -1,0 +1,12 @@
+{
+  "id": "taskq-audit-logging",
+  "description": "Add structured audit logging to all database write operations.",
+  "conditions": {
+    "1": "../taskq/conditions/1",
+    "2": "../taskq/conditions/2",
+    "2.5": "../taskq/conditions/2.5",
+    "3": "../taskq/conditions/3-4",
+    "4": "../taskq/conditions/3-4"
+  },
+  "test": "test.sh"
+}

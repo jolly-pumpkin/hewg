@@ -66,6 +66,33 @@ bun run bench -- run-cc --task smoke --condition 1 --seed 1 --model sonnet
 bun run bench -- run-cc --task smoke --condition 1 --seed 1 --model opus --max-budget 2.0
 ```
 
+## Live Log Trail
+
+Both `run` and `run-cc` support a live log trail that streams agent activity to
+stderr in real time. It's on by default when stderr is a TTY.
+
+```bash
+# Live output on by default in a terminal
+bun run bench -- run --task smoke --condition 1 --seed 1
+
+# Show full (untruncated) agent reasoning text
+bun run bench -- run --task smoke --condition 1 --seed 1 --verbose
+
+# Disable live output (e.g. for CI)
+bun run bench -- run --task smoke --condition 1 --seed 1 --no-live
+
+# run-cc pipes Claude Code's own stderr through when --live is on
+bun run bench -- run-cc --task smoke --condition 1 --live
+```
+
+Three actors are labeled on every line so you can tell who is doing what:
+
+- **Agent** — the model's reasoning (truncated to ~120 chars; `--verbose` for full)
+- **Tool** / **Result** — tool calls and their outcomes (✓ / ✗)
+- **System** — harness events (budget warnings, retries, errors)
+
+Live output goes to stderr only; stdout stays clean for structured results.
+
 ## Other Commands
 
 ```bash

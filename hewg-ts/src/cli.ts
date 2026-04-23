@@ -3,7 +3,9 @@ import pkg from "../package.json" with { type: "json" };
 import { runBaseline, type BaselineSubcommand } from "./commands/baseline.ts";
 import { runCheck, type CheckFormat } from "./commands/check.ts";
 import { runContract, type ContractFormat } from "./commands/contract.ts";
+import { runInferCommand, type InferFormat } from "./commands/infer.ts";
 import { runInit } from "./commands/init.ts";
+import { runScope, type ScopeFormat } from "./commands/scope.ts";
 import { runSummary } from "./commands/summary.ts";
 import { versionString } from "./commands/version.ts";
 
@@ -77,9 +79,41 @@ cli
   });
 
 cli
+  .command("infer", "Infer @effects annotations for unannotated functions")
+  .option("--project <path>", "Path to tsconfig.json")
+  .option("--format <fmt>", "Output format: diff (default), json, or apply")
+  .action((options: { project?: string; format?: string }) => {
+    const fmt: InferFormat =
+      options.format === "json"
+        ? "json"
+        : options.format === "apply"
+          ? "apply"
+          : "diff"
+    const result = runInferCommand({ project: options.project, format: fmt })
+    if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n")
+    if (result.stderr.length > 0) process.stderr.write(result.stderr)
+    process.exitCode = result.exitCode
+  });
+
+cli
+  .command("scope <symbol>", "Show the blast radius of a function (callers and callees)")
+  .option("--project <path>", "Path to tsconfig.json")
+  .option("--format <fmt>", "Output format: human (default) or json")
+  .option("--depth <n>", "Maximum traversal depth (default: 5)")
+  .action((symbol: string, options: { project?: string; format?: string; depth?: string }) => {
+    const fmt: ScopeFormat = options.format === "json" ? "json" : "human"
+    const depth = options.depth !== undefined ? parseInt(options.depth, 10) : undefined
+    const result = runScope(symbol, { project: options.project, format: fmt, depth })
+    if (result.stdout.length > 0) process.stdout.write(result.stdout + "\n")
+    if (result.stderr.length > 0) process.stderr.write(result.stderr)
+    process.exitCode = result.exitCode
+  });
+
+cli
   .command("init [path]", "Scaffold hewg.config.json in a TypeScript project")
-  .action((path: string | undefined) => {
-    const result = runInit({ path });
+  .option("--claude-md", "Generate a CLAUDE.md from the annotation graph")
+  .action((path: string | undefined, options: { claudeMd?: boolean }) => {
+    const result = runInit({ path, claudeMd: options.claudeMd });
     if (result.stdout.length > 0) process.stdout.write(result.stdout);
     if (result.stderr.length > 0) process.stderr.write(result.stderr + "\n");
     process.exitCode = result.exitCode;

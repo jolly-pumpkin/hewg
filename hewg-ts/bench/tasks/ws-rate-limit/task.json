@@ -1,0 +1,11 @@
+{
+  "id": "ws-rate-limit",
+  "description": "Detect HTTP 429 rate-limit responses and propagate a typed error through the service layer.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}

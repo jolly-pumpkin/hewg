@@ -17,6 +17,8 @@ export type ContractJson = {
   pre: readonly string[] | null
   post: readonly string[] | null
   cost: ContractCostJson | null
+  idempotent: boolean | null
+  layer: string | null
   errors: readonly string[] | null
   source: { file: string; line: number }
 }

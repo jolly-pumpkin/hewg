@@ -33,6 +33,7 @@ COND1="${TASK_DIR}/conditions/1"
 rm -rf "$COND1"
 cp -R "$GOLD" "$COND1"
 rm -f "${COND1}/hewg.config.json"
+rm -f "${COND1}/CLAUDE.md"
 
 # Strip all /** ... */ JSDoc blocks from .ts files (multiline).
 # Uses awk to handle multiline blocks correctly, including single-line /** ... */
@@ -65,6 +66,7 @@ COND2="${TASK_DIR}/conditions/2"
 rm -rf "$COND2"
 cp -R "$GOLD" "$COND2"
 rm -f "${COND2}/hewg.config.json"
+rm -f "${COND2}/CLAUDE.md"
 
 # Inside JSDoc blocks, remove lines containing Hewg-specific tags.
 # Keep @param, @returns, @throws, @template, @typedef, @type, @example, description lines.
@@ -126,4 +128,31 @@ find "$COND2" -name '*.ts' -print0 | while IFS= read -r -d '' file; do
   mv "${file}.tmp" "$file"
 done
 
-echo "built conditions/1 and conditions/2 for ${TASK_DIR}"
+# ---------------------------------------------------------------------------
+# Condition 2.5: TS + standard JSDoc + architectural CLAUDE.md
+# ---------------------------------------------------------------------------
+COND25="${TASK_DIR}/conditions/2.5"
+rm -rf "$COND25"
+cp -R "$COND2" "$COND25"
+
+# Look for a hand-written architectural CLAUDE.md for condition 2.5.
+CLAUDE_25=""
+if [ -f "${TASK_DIR}/claude-md-2.5.md" ]; then
+  CLAUDE_25="${TASK_DIR}/claude-md-2.5.md"
+else
+  # For tasks sharing a codebase (e.g. taskq-*/), check the shared codebase dir.
+  PARENT=$(cd "$TASK_DIR" && basename "$(pwd)")
+  SHARED_BASE=$(echo "$PARENT" | sed 's/-[^-]*$//')
+  SHARED_DIR="$(dirname "$TASK_DIR")/${SHARED_BASE}/claude-md-2.5.md"
+  if [ -f "$SHARED_DIR" ]; then
+    CLAUDE_25="$SHARED_DIR"
+  fi
+fi
+
+if [ -n "$CLAUDE_25" ]; then
+  cp "$CLAUDE_25" "${COND25}/CLAUDE.md"
+else
+  echo "warning: no claude-md-2.5.md found for ${TASK_DIR}; condition 2.5 will have no CLAUDE.md" >&2
+fi
+
+echo "built conditions/1, conditions/2, and conditions/2.5 for ${TASK_DIR}"

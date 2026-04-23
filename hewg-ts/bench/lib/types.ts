@@ -2,7 +2,7 @@
  * @hewg-module bench/lib/types
  */
 
-export type Condition = 1 | 2 | 3 | 4
+export type Condition = 1 | 2 | 2.5 | 3 | 4
 
 export type BenchConfig = {
   version: 1
@@ -91,6 +91,8 @@ export type RunMetrics = {
   tokensOutput: number
   hallucinatedSymbols: number | null
   effectViolations: number | null
+  filesReadBeforeFirstCorrectEdit: number | null
+  backtrackingEvents: number | null
   stop: StopReason
 }
 

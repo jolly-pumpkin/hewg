@@ -168,6 +168,52 @@ function analyzeDeclaredFunction(
   }
 }
 
+// --- Public callee-effects query -------------------------------------------
+
+export type CalleeEffectEntry = {
+  label: string
+  effects: ReadonlySet<EffectName>
+}
+
+/**
+ * For a given function body, resolve each call expression and return a map
+ * of callee label → observed effects. This is the shared primitive used by
+ * the CLAUDE.md generator, `hewg infer`, and `hewg scope`.
+ *
+ * @hewg-module analysis/effect-prop
+ * @effects
+ */
+export function resolveCalleeEffects(
+  fnLike: FnLike,
+  project: Project,
+  index: SymbolIndex,
+  opts: EffectPropOptions,
+): CalleeEffectEntry[] {
+  const ctx: Ctx = {
+    project,
+    index,
+    effectMap: opts.effectMap,
+    depthLimit: opts.depthLimit,
+    unknownPolicy: opts.unknownEffectPolicy,
+    packages: opts.packages ?? {},
+    defaultPackagePolicy: opts.defaultPackagePolicy,
+    visited: new Set(),
+    memo: new Map(),
+    diagnostics: [], // discarded — this is a query, not a diagnostic pass
+  }
+
+  const entries: CalleeEffectEntry[] = []
+  for (const call of fnLike.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const resolved = resolveCall(call, ctx, 0)
+    const label = calleeText(call)
+    entries.push({ label, effects: resolved })
+  }
+  return entries
+}
+
+// Re-export FnLike so callers can reference it
+export type { FnLike }
+
 // --- Call resolution -------------------------------------------------------
 
 type ResolveResult = ReadonlySet<EffectName>

@@ -1,0 +1,12 @@
+{
+  "id": "taskq-extract-pure-validation",
+  "description": "Extract pure validation logic from workers into transforms module.",
+  "conditions": {
+    "1": "../taskq/conditions/1",
+    "2": "../taskq/conditions/2",
+    "2.5": "../taskq/conditions/2.5",
+    "3": "../taskq/conditions/3-4",
+    "4": "../taskq/conditions/3-4"
+  },
+  "test": "test.sh"
+}

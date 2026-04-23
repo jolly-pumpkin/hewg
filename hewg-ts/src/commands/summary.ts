@@ -108,6 +108,15 @@ function renderExportFn(
   const cost = renderCostCompact(annotations)
   if (cost !== "") out.push(indentedLine("cost:", cost))
 
+  if (annotations.some((a) => a.kind === "idempotent")) {
+    out.push(indentedLine("idempotent:", "yes"))
+  }
+
+  const layerAnn = annotations.find((a) => a.kind === "layer")
+  if (layerAnn !== undefined && layerAnn.kind === "layer") {
+    out.push(indentedLine("layer:", layerAnn.tier))
+  }
+
   return out
 }
 

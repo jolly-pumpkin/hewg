@@ -334,6 +334,49 @@ describe("@cost", () => {
   })
 })
 
+describe("@idempotent", () => {
+  test("minimal parses with no body", () => {
+    const r = parse("idempotent-minimal.ts")
+    expect(r.errors).toEqual([])
+    expect(r.annotations).toHaveLength(1)
+    expect(r.annotations[0]!.kind).toBe("idempotent")
+  })
+
+  test("malformed with body emits E0201", () => {
+    const r = parse("idempotent-malformed.ts")
+    expect(codes(r)).toEqual(["E0201"])
+    expect(r.errors[0]!.message).toContain("@idempotent")
+  })
+})
+
+describe("@layer", () => {
+  test("minimal parses valid tier", () => {
+    const r = parse("layer-minimal.ts")
+    expect(r.errors).toEqual([])
+    expect(r.annotations).toHaveLength(1)
+    const a = r.annotations[0]!
+    if (a.kind === "layer") expect(a.tier).toBe("service")
+  })
+
+  test("all valid tiers are accepted", () => {
+    for (const tier of ["api", "service", "command", "output", "lib"]) {
+      const src = `/**\n * @layer ${tier}\n */\nexport function target() {}`
+      const sf = PROJECT.createSourceFile(`__layer_${tier}__.ts`, src, { overwrite: true })
+      const fn = sf.getFunctionOrThrow("target")
+      const r = parseAnnotations(fn)
+      expect(r.errors).toEqual([])
+      expect(r.annotations[0]!.kind).toBe("layer")
+      if (r.annotations[0]!.kind === "layer") expect(r.annotations[0]!.tier).toBe(tier)
+    }
+  })
+
+  test("malformed unknown tier emits E0201 with suggestion", () => {
+    const r = parse("layer-malformed.ts")
+    expect(codes(r)).toEqual(["E0201"])
+    expect(r.errors[0]!.message).toContain("database")
+  })
+})
+
 describe("end-to-end refund.ts", () => {
   test("correct refund parses all six tag kinds with zero errors", () => {
     const r = parse("refund-correct.ts", "refund")

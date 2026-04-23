@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path"
 import { spawnSync } from "node:child_process"
 import { runCheck } from "../../src/commands/check.ts"
 import { runContract } from "../../src/commands/contract.ts"
+import { runScope } from "../../src/commands/scope.ts"
 import type { Condition, ToolResult, ToolSchema } from "./types.ts"
 import { writeFileEnsureDir } from "./workspace.ts"
 
@@ -53,6 +54,9 @@ export function buildToolBundle(opts: ToolBundleOptions): ToolBundle {
       case "hewg_contract":
         if (opts.condition !== 4) return errResult(toolUseId, `tool ${name} is not available in this condition`)
         return runHewgContract(toolUseId, opts.workspace, input)
+      case "hewg_scope":
+        if (opts.condition !== 4) return errResult(toolUseId, `tool ${name} is not available in this condition`)
+        return runHewgScope(toolUseId, opts.workspace, input)
       default:
         return errResult(toolUseId, `unknown tool: ${name}`)
     }
@@ -163,6 +167,23 @@ function runHewgContract(
     return errResult(toolUseId, "hewg_contract: no tsconfig.json at workspace root")
   }
   const res = runContract(symbol, { project: tsconfig, format: "json", cwd: workspace })
+  if (res.exitCode === 0) return { toolUseId, content: res.stdout, isError: false }
+  return { toolUseId, content: res.stderr.length > 0 ? res.stderr : `exit ${res.exitCode}`, isError: true }
+}
+
+function runHewgScope(
+  toolUseId: string,
+  workspace: string,
+  input: Record<string, unknown>,
+): ToolResult {
+  const symbol = String(input.symbol ?? "")
+  if (symbol === "") return errResult(toolUseId, "hewg_scope: missing `symbol`")
+  const depth = typeof input.depth === "number" ? input.depth : undefined
+  const tsconfig = resolve(workspace, "tsconfig.json")
+  if (!existsSync(tsconfig)) {
+    return errResult(toolUseId, "hewg_scope: no tsconfig.json at workspace root")
+  }
+  const res = runScope(symbol, { project: tsconfig, format: "json", depth, cwd: workspace })
   if (res.exitCode === 0) return { toolUseId, content: res.stdout, isError: false }
   return { toolUseId, content: res.stderr.length > 0 ? res.stderr : `exit ${res.exitCode}`, isError: true }
 }

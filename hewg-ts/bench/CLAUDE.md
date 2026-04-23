@@ -4,14 +4,15 @@
 
 Controlled experiment comparing LLM coding performance across four annotation conditions (Design doc section 9). The harness sends tasks to models, constrains their tools, and measures success rate, iterations, and token usage.
 
-## Four conditions
+## Five conditions
 
 1. Plain TypeScript (no JSDoc)
 2. TS + standard JSDoc (`@param`, `@returns`)
-3. TS + full Hewg annotations (no `hewg_check`/`hewg_contract` tools)
-4. TS + full Hewg annotations + tool access
+2.5. TS + standard JSDoc + architectural CLAUDE.md (no annotation schema)
+3. TS + full Hewg annotations + CLAUDE.md (no tools)
+4. TS + full Hewg annotations + CLAUDE.md + tool access (`hewg_check`, `hewg_contract`, `hewg_scope`)
 
-Conditions 3 and 4 share source (`conditions/3-4/`). Conditions 1 and 2 are generated from 3-4 by `scripts/build-conditions.sh`.
+Conditions 3 and 4 share source (`conditions/3-4/`). Conditions 1, 2, and 2.5 are generated from 3-4 by `scripts/build-conditions.sh`. Condition 2.5 gets a hand-written `claude-md-2.5.md` as its CLAUDE.md (architectural map only, no annotation schema).
 
 ## Running
 
@@ -37,7 +38,7 @@ bun run bench:analyze -- --tasks <id> --out bench/results/report.md
 - `harness.ts` — CLI entry point (cac). Commands: `run`, `run-cc`, `status`.
 - `lib/agent-loop.ts` — Core loop: send messages, execute tool calls, check budgets. Used by `run` command.
 - `lib/run.ts` — Orchestrates workspace setup, agent loop, ground-truth check, result serialization.
-- `lib/tools.ts` — `ToolBundle`: sandboxed `read_file`, `edit_file`, `run_tests`, `hewg_check`, `hewg_contract`. Path-escaping prevented via `safeResolve`.
+- `lib/tools.ts` — `ToolBundle`: sandboxed `read_file`, `edit_file`, `run_tests`, `hewg_check`, `hewg_contract`, `hewg_scope`. Path-escaping prevented via `safeResolve`.
 - `lib/anthropic-client.ts` — `ModelClient` interface + Anthropic Messages API implementation.
 - `lib/ollama-client.ts` — `ModelClient` for local Ollama (OpenAI-compatible chat completions).
 - `lib/claude-code-runner.ts` — Runs tasks via `claude -p` headless, bypassing the custom agent loop.
@@ -53,7 +54,11 @@ Each task under `tasks/<id>/` has:
 - `task.json` — `{id, description, conditions, test}`
 - `README.md` — Task prompt (fed to agent)
 - `test.sh` — Ground-truth check (exit 0 = pass)
-- `conditions/{1,2,3-4}/` — Source files per condition
+- `conditions/{1,2,2.5,3-4}/` — Source files per condition
+
+## Live logging
+
+`--live` (default when stderr is a TTY) streams agent activity to stderr. `--verbose` shows full agent text instead of truncated. `--no-live` silences it. For `run-cc`, live mode pipes Claude Code's stderr through directly. Three labeled actors: Agent (model reasoning), Tool/Result (calls + outcomes), System (budget/error events). Output goes to stderr only — stdout stays clean.
 
 ## Key conventions
 
@@ -61,15 +66,15 @@ Each task under `tasks/<id>/` has:
 - Workspaces are created under `/tmp/hewg-bench/<task>-<cond>-<seed>/`.
 - Results go to `results/<task>/<cond>/<seed>/result.json` (gitignored).
 - Tools are sandboxed to the workspace — `safeResolve` blocks path traversal.
-- `hewg_check` and `hewg_contract` are only available in condition 4.
-- `build-conditions.sh` is idempotent — safe to re-run.
+- `hewg_check`, `hewg_contract`, and `hewg_scope` are only available in condition 4.
+- `build-conditions.sh` is idempotent — safe to re-run. Generates conditions 1, 2, and 2.5.
 - Task test scripts use `bun -e` (not `bun eval`), and `tsc` checks are conditional on `command -v tsc`.
 
 ## Common tasks
 
-**Add a new task:** Copy the `smoke` task structure, author `conditions/3-4/` with Hewg annotations, run `./bench/scripts/build-conditions.sh bench/tasks/<id>` to generate conditions 1 and 2.
+**Add a new task:** Copy the `smoke` task structure, author `conditions/3-4/` with Hewg annotations, run `./bench/scripts/build-conditions.sh bench/tasks/<id>` to generate conditions 1, 2, and 2.5. For tasks sharing a codebase (like taskq-*), point conditions in task.json to `../taskq/conditions/`.
 
-**Re-generate conditions 1 & 2 after editing 3-4:**
+**Re-generate conditions 1, 2 & 2.5 after editing 3-4:**
 ```bash
 ./bench/scripts/build-conditions.sh bench/tasks/<task-id>
 ```

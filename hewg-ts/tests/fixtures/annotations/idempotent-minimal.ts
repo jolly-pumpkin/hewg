@@ -1,0 +1,4 @@
+/**
+ * @idempotent
+ */
+export function target() {}

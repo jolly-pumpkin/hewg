@@ -1,0 +1,18 @@
+{
+  "name": "hewg_scope",
+  "description": "Show the blast radius of a function — its callers, callees, and their declared effects. Use this to understand which functions will be affected by a change and what effect boundaries you need to respect.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "The function name to query. Accepts bare names (e.g. 'fetchWeather'), file-qualified names ('src/api/client.ts:fetchWeather'), or module-qualified names ('api/client::fetchWeather')."
+      },
+      "depth": {
+        "type": "number",
+        "description": "Maximum traversal depth for callers and callees. Default: 5."
+      }
+    },
+    "required": ["symbol"]
+  }
+}

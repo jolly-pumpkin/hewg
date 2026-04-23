@@ -10,6 +10,7 @@
   "prompts": {
     "1": "bench/prompts/condition-1.md",
     "2": "bench/prompts/condition-2.md",
+    "2.5": "bench/prompts/condition-2.5.md",
     "3": "bench/prompts/condition-3.md",
     "4": "bench/prompts/condition-4.md"
   },
@@ -21,7 +22,8 @@
     ],
     "condition4": [
       "bench/tools/hewg_check.json",
-      "bench/tools/hewg_contract.json"
+      "bench/tools/hewg_contract.json",
+      "bench/tools/hewg_scope.json"
     ]
   },
   "retry": {

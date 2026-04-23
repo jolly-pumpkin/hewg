@@ -15,6 +15,7 @@ You have these tools:
 - `run_tests()` — run the task's ground-truth test script; returns stdout, stderr, and exit code.
 - `hewg_contract(symbol)` — return the structured contract (signature, effects, caps, pre/post, cost) for an annotated symbol. Prefer this to reading a whole file when you just need a function's interface.
 - `hewg_check()` — run the analyzer on the workspace; returns the list of diagnostics. Use this to verify your patch's effects and capability flow before finishing.
+- `hewg_scope(symbol, depth?)` — show the blast radius of a function: its callers, callees, and their declared effects. Use this to understand what will be affected by a change.
 
 Work iteratively: read or query, edit, run tests, repeat. Stop when tests pass by replying with the single word `DONE`. If you get stuck, explain why and then reply `GIVE UP`.
 

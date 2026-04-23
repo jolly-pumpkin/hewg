@@ -1,0 +1,12 @@
+{
+  "id": "taskq-circuit-breaker",
+  "description": "Add circuit breaker to all outbound HTTP callers in workers.",
+  "conditions": {
+    "1": "../taskq/conditions/1",
+    "2": "../taskq/conditions/2",
+    "2.5": "../taskq/conditions/2.5",
+    "3": "../taskq/conditions/3-4",
+    "4": "../taskq/conditions/3-4"
+  },
+  "test": "test.sh"
+}

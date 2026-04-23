@@ -1,0 +1,12 @@
+{
+  "id": "taskq-thread-tenant-context",
+  "description": "Thread TenantContext through the effectful request path from API to workers.",
+  "conditions": {
+    "1": "../taskq/conditions/1",
+    "2": "../taskq/conditions/2",
+    "2.5": "../taskq/conditions/2.5",
+    "3": "../taskq/conditions/3-4",
+    "4": "../taskq/conditions/3-4"
+  },
+  "test": "test.sh"
+}

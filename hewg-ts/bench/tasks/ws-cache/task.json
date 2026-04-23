@@ -1,0 +1,11 @@
+{
+  "id": "ws-cache",
+  "description": "Add an in-memory cache between the API client and sync service.",
+  "conditions": {
+    "1": "conditions/1",
+    "2": "conditions/2",
+    "3": "conditions/3-4",
+    "4": "conditions/3-4"
+  },
+  "test": "test.sh"
+}
